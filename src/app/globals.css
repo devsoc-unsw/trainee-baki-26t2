@@ -8,8 +8,19 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-indie-flower);
+}
+
+@utility font-special-elite {
+  font-family: var(--font-special-elite);
+}
+
+@utility font-island-moments {
+  font-family: var(--font-island-moments);
+}
+
+@utility font-indie-flower {
+  font-family: var(--font-indie-flower);
 }
 
 @media (prefers-color-scheme: dark) {
