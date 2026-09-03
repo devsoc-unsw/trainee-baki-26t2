@@ -185,21 +185,15 @@ export default function ShoppingListCard() {
           </ul>
         )}
 
-        <form onSubmit={addItem} className="mt-6 flex gap-2">
+        <form onSubmit={addItem} className="mt-6">
           <input
             type="text"
             value={newItemName}
             onChange={(event) => setNewItemName(event.target.value)}
             placeholder="Add an item"
             aria-label="New item name"
-            className="min-w-0 flex-1 rounded-xl border border-[#FFC518]/50 bg-[#FFF9EE] px-3 py-2 font-indie-flower text-xl text-black outline-none placeholder:text-black/50 focus:ring-2 focus:ring-[#FFC518]"
+            className="w-full rounded-xl border border-[#FFC518]/50 bg-[#FFF9EE] px-3 py-2 font-indie-flower text-xl text-black outline-none placeholder:text-black/50 focus:ring-2 focus:ring-[#FFC518]"
           />
-          <button
-            type="submit"
-            className="rounded-xl bg-[#FFC518] px-4 py-2 font-special-elite text-sm text-black hover:bg-[#E5B016] focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none"
-          >
-            Add
-          </button>
         </form>
       </div>
 

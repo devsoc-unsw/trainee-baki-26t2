@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 // Keep the nav labels together so they are easy to update later.
 const navItems = ["List", "Meal Prep", "What can I make?"];
@@ -27,14 +28,24 @@ export default function Header() {
         aria-label="Main navigation"
         className="ml-6 flex min-w-0 flex-1 flex-wrap items-center justify-between gap-y-2 sm:ml-10 sm:flex-nowrap lg:ml-16"
       >
-        {navItems.map((item) => (
-          <span
-            key={item}
-            className="font-special-elite text-base leading-tight text-black sm:text-xl lg:text-2xl"
-          >
-            {item}
-          </span>
-        ))}
+        {navItems.map((item) =>
+          item === "Meal Prep" ? (
+            <Link
+              key={item}
+              href="/meal-prep"
+              className="font-special-elite text-base leading-tight text-black sm:text-xl lg:text-2xl"
+            >
+              {item}
+            </Link>
+          ) : (
+            <span
+              key={item}
+              className="font-special-elite text-base leading-tight text-black sm:text-xl lg:text-2xl"
+            >
+              {item}
+            </span>
+          ),
+        )}
       </nav>
     </header>
   );
