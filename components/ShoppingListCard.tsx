@@ -2,74 +2,28 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-
-type ShoppingItem = {
-  id: number;
-  name: string;
-  quantity: number;
-  unit: string;
-};
-
-const startingItems: ShoppingItem[] = [
-  { id: 1, name: "Eggs", quantity: 8, unit: "x" },
-  { id: 2, name: "Butter", quantity: 150, unit: "g" },
-  { id: 3, name: "Milk", quantity: 600, unit: "ml" },
-  { id: 4, name: "Sugar", quantity: 200, unit: "g" },
-];
+import { useShoppingList } from "../src/context/ShoppingListContext";
 
 const isValidQuantity = (value: string) => {
   const quantity = Number(value);
   return value.trim() !== "" && Number.isFinite(quantity) && quantity > 0;
 };
 
-const formatItemName = (name: string) =>
-  name.charAt(0).toUpperCase() + name.slice(1);
-
-const parseNewItem = (value: string) => {
-  const unitMatch = value.match(
-    /^(\d+(?:\.\d+)?)\s*(kg|mg|ml|g|l|x)\s+(.+)$/i,
-  );
-
-  if (unitMatch) {
-    return {
-      quantity: Number(unitMatch[1]),
-      unit: unitMatch[2].toLowerCase(),
-      name: formatItemName(unitMatch[3].trim()),
-    };
-  }
-
-  const quantityMatch = value.match(/^(\d+(?:\.\d+)?)\s+(.+)$/);
-  if (quantityMatch) {
-    return {
-      quantity: Number(quantityMatch[1]),
-      unit: "x",
-      name: formatItemName(quantityMatch[2].trim()),
-    };
-  }
-
-  return {
-    quantity: 1,
-    unit: "x",
-    name: formatItemName(value),
-  };
-};
-
 export default function ShoppingListCard() {
   const router = useRouter();
-  const [items, setItems] = useState(startingItems);
+  const { items, addItem, removeItem, updateQuantity, updateUnit } =
+    useShoppingList();
   const [quantityDrafts, setQuantityDrafts] = useState<
     Record<number, string>
   >(() =>
     Object.fromEntries(
-      startingItems.map((item) => [item.id, String(item.quantity)]),
+      items.map((item) => [item.id, String(item.quantity)]),
     ),
   );
   const [newItemName, setNewItemName] = useState("");
 
-  const removeItem = (id: number) => {
-    setItems((currentItems) =>
-      currentItems.filter((item) => item.id !== id),
-    );
+  const handleRemoveItem = (id: number) => {
+    removeItem(id);
     setQuantityDrafts((currentDrafts) => {
       const nextDrafts = { ...currentDrafts };
       delete nextDrafts[id];
@@ -77,7 +31,7 @@ export default function ShoppingListCard() {
     });
   };
 
-  const updateQuantity = (id: number, value: string) => {
+  const handleUpdateQuantity = (id: number, value: string) => {
     setQuantityDrafts((currentDrafts) => ({
       ...currentDrafts,
       [id]: value,
@@ -85,43 +39,24 @@ export default function ShoppingListCard() {
 
     if (!isValidQuantity(value)) return;
 
-    setItems((currentItems) =>
-      currentItems.map((item) =>
-        item.id === id ? { ...item, quantity: Number(value) } : item,
-      ),
-    );
+    updateQuantity(id, Number(value));
   };
 
-  const updateUnit = (id: number, value: string) => {
-    setItems((currentItems) =>
-      currentItems.map((item) =>
-        item.id === id ? { ...item, unit: value } : item,
-      ),
-    );
-  };
-
-  const addItem = (event: FormEvent<HTMLFormElement>) => {
+  const handleAddItem = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const input = newItemName.trim();
-    if (!input) return;
+    const newItem = addItem(newItemName);
+    if (!newItem) return;
 
-    const newItem = parseNewItem(input);
-    const nextId = Math.max(0, ...items.map((item) => item.id)) + 1;
-    setItems((currentItems) => [
-      ...currentItems,
-      { id: nextId, ...newItem },
-    ]);
     setQuantityDrafts((currentDrafts) => ({
       ...currentDrafts,
-      [nextId]: String(newItem.quantity),
+      [newItem.id]: String(newItem.quantity),
     }));
     setNewItemName("");
   };
 
   const compareStores = () => {
-    const shoppingList = encodeURIComponent(JSON.stringify(items));
-    router.push(`/compare?items=${shoppingList}`);
+    router.push("/compare");
   };
 
   return (
@@ -149,7 +84,7 @@ export default function ShoppingListCard() {
                       inputMode="decimal"
                       value={quantityValue}
                       onChange={(event) =>
-                        updateQuantity(item.id, event.target.value)
+                        handleUpdateQuantity(item.id, event.target.value)
                       }
                       aria-label={`${item.name} quantity`}
                       aria-invalid={hasQuantityError}
@@ -167,7 +102,7 @@ export default function ShoppingListCard() {
                     <span className="flex-1">{item.name}</span>
                     <button
                       type="button"
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => handleRemoveItem(item.id)}
                       aria-label={`Remove ${item.name}`}
                       className="rounded px-2 text-2xl leading-none hover:bg-black/10 focus:ring-2 focus:ring-black focus:outline-none"
                     >
@@ -185,7 +120,7 @@ export default function ShoppingListCard() {
           </ul>
         )}
 
-        <form onSubmit={addItem} className="mt-6">
+        <form onSubmit={handleAddItem} className="mt-6">
           <input
             type="text"
             value={newItemName}

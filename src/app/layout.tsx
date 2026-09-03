@@ -4,6 +4,7 @@ import {
   Island_Moments,
   Special_Elite,
 } from "next/font/google";
+import { ShoppingListProvider } from "../context/ShoppingListContext";
 import "./globals.css";
 
 const specialElite = Special_Elite({
@@ -35,7 +36,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${specialElite.variable} ${islandMoments.variable} ${indieFlower.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ShoppingListProvider>{children}</ShoppingListProvider>
+      </body>
     </html>
   );
 }

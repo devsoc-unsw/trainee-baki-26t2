@@ -29,10 +29,12 @@ export default function Header() {
         className="ml-6 flex min-w-0 flex-1 flex-wrap items-center justify-between gap-y-2 sm:ml-10 sm:flex-nowrap lg:ml-16"
       >
         {navItems.map((item) =>
-          item === "Meal Prep" ? (
+          item === "Meal Prep" || item === "What can I make?" ? (
             <Link
               key={item}
-              href="/meal-prep"
+              href={
+                item === "Meal Prep" ? "/meal-prep" : "/what-can-i-make"
+              }
               className="font-special-elite text-base leading-tight text-black sm:text-xl lg:text-2xl"
             >
               {item}
