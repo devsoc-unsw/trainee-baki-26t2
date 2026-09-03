@@ -257,7 +257,7 @@ export default function ComparePage() {
                 type="button"
                 onClick={() => setActiveView("cheapest")}
                 aria-pressed={activeView === "cheapest"}
-                className={`rounded-xl px-8 py-4 font-indie-flower text-2xl text-black ${
+                className={`rounded-xl px-8 py-4 font-indie-flower text-2xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none ${
                   activeView === "cheapest"
                     ? "bg-[#FFC518]"
                     : "bg-[#FFF2C0]"
@@ -269,7 +269,7 @@ export default function ComparePage() {
                 type="button"
                 onClick={() => setActiveView("location")}
                 aria-pressed={activeView === "location"}
-                className={`rounded-xl px-8 py-4 font-indie-flower text-2xl text-black ${
+                className={`rounded-xl px-8 py-4 font-indie-flower text-2xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none ${
                   activeView === "location"
                     ? "bg-[#FFC518]"
                     : "bg-[#FFF2C0]"
@@ -280,7 +280,7 @@ export default function ComparePage() {
               {activeView === "location" && (
                 <button
                   type="button"
-                  className="ml-auto rounded-xl bg-[#A5D8F3] px-8 py-4 font-indie-flower text-2xl text-black"
+                  className="ml-auto rounded-xl bg-[#A5D8F3] px-8 py-4 font-indie-flower text-2xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none"
                 >
                   See Map
                 </button>
@@ -333,7 +333,7 @@ export default function ComparePage() {
                   </div>
                   <button
                     type="button"
-                    className="rounded-xl border-0 bg-[#FFC518] px-8 py-4 font-indie-flower text-2xl text-black"
+                    className="rounded-xl border-0 bg-[#FFC518] px-8 py-4 font-indie-flower text-2xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none"
                   >
                     Add to Cart
                   </button>

@@ -200,7 +200,7 @@ export default function WhatCanIMakePage() {
                 type="button"
                 onClick={() => togglePreference("quickMeal")}
                 aria-pressed={preferences.includes("quickMeal")}
-                className={`rounded-3xl border-2 border-black px-8 py-4 font-indie-flower text-2xl text-black ${
+                className={`rounded-3xl border-2 border-black px-8 py-4 font-indie-flower text-2xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none ${
                   preferences.includes("quickMeal")
                     ? "bg-[#FFC518]"
                     : "bg-white"
@@ -212,7 +212,7 @@ export default function WhatCanIMakePage() {
                 type="button"
                 onClick={() => togglePreference("highProtein")}
                 aria-pressed={preferences.includes("highProtein")}
-                className={`rounded-3xl border-2 border-black px-8 py-4 font-indie-flower text-2xl text-black ${
+                className={`rounded-3xl border-2 border-black px-8 py-4 font-indie-flower text-2xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none ${
                   preferences.includes("highProtein")
                     ? "bg-[#FFC518]"
                     : "bg-white"
@@ -225,7 +225,7 @@ export default function WhatCanIMakePage() {
             <button
               type="button"
               onClick={findMeals}
-              className="mx-auto mt-8 block rounded-xl border-0 bg-[#FFC518] px-8 py-4 font-indie-flower text-2xl text-black"
+              className="mx-auto mt-8 block rounded-xl border-0 bg-[#FFC518] px-8 py-4 font-indie-flower text-2xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none"
             >
               Find Meals
             </button>
@@ -265,7 +265,7 @@ export default function WhatCanIMakePage() {
                       </p>
                       <button
                         type="button"
-                        className="mt-6 self-end rounded-xl border-0 bg-[#FFC518] px-6 py-2.5 font-indie-flower text-xl text-black sm:mt-auto"
+                        className="mt-6 self-end rounded-xl border-0 bg-[#FFC518] px-6 py-2.5 font-indie-flower text-xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none sm:mt-auto"
                       >
                         View Recipe
                       </button>

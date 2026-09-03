@@ -2,7 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 
 // Keep the nav labels together so they are easy to update later.
-const navItems = ["List", "Meal Prep", "What can I make?"];
+const navItems = [
+  { label: "List", href: "/" },
+  { label: "Meal Prep", href: "/meal-prep" },
+  { label: "What can I make?", href: "/what-can-i-make" },
+];
 
 export default function Header() {
   return (
@@ -28,26 +32,15 @@ export default function Header() {
         aria-label="Main navigation"
         className="ml-6 flex min-w-0 flex-1 flex-wrap items-center justify-between gap-y-2 sm:ml-10 sm:flex-nowrap lg:ml-16"
       >
-        {navItems.map((item) =>
-          item === "Meal Prep" || item === "What can I make?" ? (
-            <Link
-              key={item}
-              href={
-                item === "Meal Prep" ? "/meal-prep" : "/what-can-i-make"
-              }
-              className="font-special-elite text-base leading-tight text-black sm:text-xl lg:text-2xl"
-            >
-              {item}
-            </Link>
-          ) : (
-            <span
-              key={item}
-              className="font-special-elite text-base leading-tight text-black sm:text-xl lg:text-2xl"
-            >
-              {item}
-            </span>
-          ),
-        )}
+        {navItems.map((item) => (
+          <Link
+            key={item.label}
+            href={item.href}
+            className="rounded-sm font-special-elite text-base leading-tight text-black hover:opacity-70 focus:ring-2 focus:ring-black focus:ring-offset-2 focus:outline-none sm:text-xl lg:text-2xl"
+          >
+            {item.label}
+          </Link>
+        ))}
       </nav>
     </header>
   );

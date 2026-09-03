@@ -154,12 +154,20 @@ export default function MealPrepPage() {
                   key={restriction}
                   className="flex cursor-pointer items-center gap-3 rounded-lg border border-black/20 bg-white p-4 font-indie-flower text-xl text-black"
                 >
-                  <input
-                    type="checkbox"
-                    checked={dietaryRestrictions.includes(restriction)}
-                    onChange={() => toggleRestriction(restriction)}
-                    className="h-5 w-5 appearance-none rounded-full border border-black/30 bg-white checked:border-[#FFC518] checked:bg-[#FFC518]"
-                  />
+                  <span className="relative h-5 w-5 shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={dietaryRestrictions.includes(restriction)}
+                      onChange={() => toggleRestriction(restriction)}
+                      className="peer h-5 w-5 appearance-none rounded-full border border-black/30 bg-white checked:border-[#FFC518] checked:bg-[#FFC518] focus:ring-2 focus:ring-black focus:ring-offset-2 focus:outline-none"
+                    />
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm opacity-0 peer-checked:opacity-100"
+                    >
+                      ✓
+                    </span>
+                  </span>
                   {restriction}
                 </label>
               ))}
@@ -202,7 +210,7 @@ export default function MealPrepPage() {
                 disabled={
                   !selectedMeal || unsuitableRestrictions.length > 0
                 }
-                className="mt-4 rounded-xl border-0 bg-[#FFC518] px-6 py-3 font-indie-flower text-xl text-black disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
+                className="mt-4 rounded-xl border-0 bg-[#FFC518] px-6 py-3 font-indie-flower text-xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
               >
                 Get Ingredients List
               </button>
