@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../../../components/Header";
+import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
 import { useShoppingList } from "../../context/ShoppingListContext";
 import {
   getIngredientsForMeal,
@@ -169,12 +171,20 @@ export default function MealPrepPage() {
                     .join(", ")}
                 </p>
               ) : (
-                <article className="w-full max-w-85 rounded-3xl bg-[#FFF2C0] p-4">
-                  <div
-                    className="h-45 w-full rounded-2xl bg-[#FFF9EE]"
+                <Card
+                  as="article"
+                  variant="panel"
+                  className="w-full max-w-85 p-4"
+                >
+                  <Card
+                    variant="placeholder"
+                    className="h-45 w-full rounded-2xl!"
                     aria-hidden="true"
                   />
-                  <div className="mt-4 rounded-xl bg-white p-4 text-center text-black">
+                  <Card
+                    variant="content"
+                    className="mt-4 p-4 text-center text-black"
+                  >
                     <p className="font-indie-flower text-base">
                       Description:
                     </p>
@@ -184,11 +194,11 @@ export default function MealPrepPage() {
                     <p className="mt-3 font-indie-flower text-xs">
                       {selectedMeal.attribution}
                     </p>
-                  </div>
-                </article>
+                  </Card>
+                </Card>
               )}
-              <button
-                type="button"
+              <Button
+                variant="primary"
                 onClick={addMealIngredients}
                 disabled={
                   status !== "success" ||
@@ -196,10 +206,10 @@ export default function MealPrepPage() {
                   unsuitableRestrictions.length > 0 ||
                   isAddingIngredients
                 }
-                className="mt-4 rounded-xl border-0 bg-[#FFC518] px-6 py-3 font-indie-flower text-xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
+                className="mt-4 px-6 py-3 text-xl"
               >
                 Get Ingredients List
-              </button>
+              </Button>
               {ingredientsError && (
                 <p className="mt-3 font-indie-flower text-xl text-black">
                   We couldn&apos;t add those ingredients — please try

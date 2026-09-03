@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Header from "../../../components/Header";
+import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
 import { getMealsFromIngredients } from "../../lib/api";
 import {
   formatIngredientName,
@@ -117,7 +119,11 @@ export default function WhatCanIMakePage() {
       <Header />
       <main className="bg-white p-6 sm:p-8">
         <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-8 lg:grid-cols-11">
-          <section className="rounded-3xl bg-[#FFF2C0] p-6 sm:p-8 lg:col-span-5">
+          <Card
+            as="section"
+            variant="panel"
+            className="p-6 sm:p-8 lg:col-span-5"
+          >
             <h1 className="text-center font-island-moments text-4xl text-black">
               Ingrediants I have
             </h1>
@@ -143,14 +149,14 @@ export default function WhatCanIMakePage() {
                     className="flex items-center gap-3 rounded-xl bg-[#FFE08A] px-5 py-3 font-indie-flower text-2xl text-black"
                   >
                     <span>{displayName}</span>
-                    <button
-                      type="button"
+                    <Button
+                      variant="remove"
                       onClick={() => removeIngredient(ingredient)}
                       aria-label={`Remove ${displayName}`}
-                      className="rounded px-1 text-xl leading-none focus:ring-2 focus:ring-black focus:outline-none"
+                      className="px-1 text-xl"
                     >
                       ×
-                    </button>
+                    </Button>
                   </div>
                 );
               })}
@@ -162,40 +168,32 @@ export default function WhatCanIMakePage() {
               Preferences
             </h2>
             <div className="mt-4 flex flex-wrap gap-4">
-              <button
-                type="button"
+              <Button
+                variant="toggle"
+                active={preferences.includes("quickMeal")}
                 onClick={() => togglePreference("quickMeal")}
                 aria-pressed={preferences.includes("quickMeal")}
-                className={`rounded-3xl border-2 border-black px-8 py-4 font-indie-flower text-2xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none ${
-                  preferences.includes("quickMeal")
-                    ? "bg-[#FFC518]"
-                    : "bg-white"
-                }`}
               >
                 Quick Meal
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="toggle"
+                active={preferences.includes("highProtein")}
                 onClick={() => togglePreference("highProtein")}
                 aria-pressed={preferences.includes("highProtein")}
-                className={`rounded-3xl border-2 border-black px-8 py-4 font-indie-flower text-2xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none ${
-                  preferences.includes("highProtein")
-                    ? "bg-[#FFC518]"
-                    : "bg-white"
-                }`}
               >
                 High Protein
-              </button>
+              </Button>
             </div>
 
-            <button
-              type="button"
+            <Button
+              variant="primary"
               onClick={findMeals}
-              className="mx-auto mt-8 block rounded-xl border-0 bg-[#FFC518] px-8 py-4 font-indie-flower text-2xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none"
+              className="mx-auto mt-8 block px-8 py-4 text-2xl"
             >
               Find Meals
-            </button>
-          </section>
+            </Button>
+          </Card>
 
           <section className="lg:col-span-6">
             <h2 className="font-island-moments text-4xl text-black">
@@ -222,12 +220,15 @@ export default function WhatCanIMakePage() {
             ) : (
               <div className="mt-6 space-y-6">
                 {mealMatches.map(({ meal, matchCount }) => (
-                  <article
+                  <Card
+                    as="article"
+                    variant="meal"
                     key={meal.id}
-                    className="flex flex-col gap-4 rounded-2xl border-2 border-[#FFE08A] bg-white p-4 sm:flex-row"
+                    className="flex flex-col gap-4 p-4 sm:flex-row"
                   >
-                    <div
-                      className="h-45 w-full shrink-0 rounded-xl bg-[#FFF9EE] sm:w-50"
+                    <Card
+                      variant="placeholder"
+                      className="h-45 w-full shrink-0 sm:w-50"
                       aria-hidden="true"
                     />
                     <div className="flex min-w-0 flex-1 flex-col">
@@ -237,14 +238,14 @@ export default function WhatCanIMakePage() {
                       <p className="mt-3 font-indie-flower text-xl text-black">
                         Uses {matchCount} of your ingredients
                       </p>
-                      <button
-                        type="button"
-                        className="mt-6 self-end rounded-xl border-0 bg-[#FFC518] px-6 py-2.5 font-indie-flower text-xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none sm:mt-auto"
+                      <Button
+                        variant="primary"
+                        className="mt-6 self-end px-6 py-2.5 text-xl sm:mt-auto"
                       >
                         View Recipe
-                      </button>
+                      </Button>
                     </div>
-                  </article>
+                  </Card>
                 ))}
               </div>
             )}

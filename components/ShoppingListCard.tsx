@@ -4,6 +4,8 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useShoppingList } from "../src/context/ShoppingListContext";
 import { formatIngredientName } from "../src/lib/ingredients";
+import Button from "./ui/Button";
+import Card from "./ui/Card";
 
 const isValidQuantity = (value: string) => {
   const quantity = Number(value);
@@ -61,12 +63,16 @@ export default function ShoppingListCard() {
   };
 
   return (
-    <section className="ml-0 w-full max-w-120 rounded-3xl bg-[#FFF2C0] p-6 sm:ml-4 lg:ml-8">
+    <Card
+      as="section"
+      variant="panel"
+      className="ml-0 w-full max-w-120 p-6 sm:ml-4 lg:ml-8"
+    >
       <h2 className="mb-4 font-island-moments text-5xl leading-none text-black sm:text-6xl">
         Shopping List
       </h2>
 
-      <div className="rounded-2xl bg-[#FFF9EE] p-6">
+      <Card variant="well" className="p-6">
         {items.length === 0 ? (
           <p className="font-indie-flower text-2xl text-black/60">
             Your list is empty — add something below!
@@ -102,14 +108,14 @@ export default function ShoppingListCard() {
                       className="w-12 rounded bg-transparent px-1 outline-none focus:ring-2 focus:ring-black"
                     />
                     <span className="flex-1">{displayName}</span>
-                    <button
-                      type="button"
+                    <Button
+                      variant="remove"
                       onClick={() => handleRemoveItem(item.id)}
                       aria-label={`Remove ${displayName}`}
-                      className="rounded px-2 text-2xl leading-none hover:bg-black/10 focus:ring-2 focus:ring-black focus:outline-none"
+                      className="px-2 text-2xl hover:bg-black/10"
                     >
                       ×
-                    </button>
+                    </Button>
                   </div>
                   {hasQuantityError && (
                     <p className="mt-1 text-base text-red-700">
@@ -132,16 +138,16 @@ export default function ShoppingListCard() {
             className="w-full rounded-xl border border-[#FFC518]/50 bg-[#FFF9EE] px-3 py-2 font-indie-flower text-xl text-black outline-none placeholder:text-black/50 focus:ring-2 focus:ring-[#FFC518]"
           />
         </form>
-      </div>
+      </Card>
 
-      <button
-        type="button"
+      <Button
+        variant="primary"
         onClick={compareStores}
         disabled={items.length === 0}
-        className="mx-auto mt-4 block h-21.25 w-full max-w-56.25 rounded-[28px] border-0 bg-[#FFC518] font-indie-flower text-4xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
+        className="mx-auto mt-4 block h-21.25 w-full max-w-56.25 rounded-[28px]! text-4xl"
       >
         Get My Order
-      </button>
-    </section>
+      </Button>
+    </Card>
   );
 }
