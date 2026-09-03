@@ -8,8 +8,10 @@ import { useShoppingList } from "../../context/ShoppingListContext";
 type ComparisonView = "cheapest" | "location";
 
 type PriceEntry = {
-  productName: string;
-  unitPrice: number;
+  name: string;
+  packageSize: number;
+  packageUnit: string;
+  price: number;
   imageUrl: string | null;
 };
 
@@ -23,53 +25,73 @@ const storePricing: Record<"coles" | "woolworths", StorePricing> = {
     name: "Coles",
     prices: {
       eggs: {
-        productName: "Coles Free Range Eggs x12",
-        unitPrice: 6.5,
+        name: "Coles Free Range Eggs x12",
+        packageSize: 12,
+        packageUnit: "x",
+        price: 6.5,
         imageUrl: null,
       },
       butter: {
-        productName: "Coles Unsalted Butter 250g",
-        unitPrice: 4.8,
+        name: "Coles Unsalted Butter 250g",
+        packageSize: 250,
+        packageUnit: "g",
+        price: 4.8,
         imageUrl: null,
       },
       milk: {
-        productName: "Coles Full Cream Milk 2L",
-        unitPrice: 3.1,
+        name: "Coles Full Cream Milk 2L",
+        packageSize: 2,
+        packageUnit: "L",
+        price: 3.1,
         imageUrl: null,
       },
       sugar: {
-        productName: "Coles White Sugar 1kg",
-        unitPrice: 2.2,
+        name: "Coles White Sugar 1kg",
+        packageSize: 1,
+        packageUnit: "kg",
+        price: 2.2,
         imageUrl: null,
       },
       rice: {
-        productName: "Coles Long Grain Rice 1kg",
-        unitPrice: 3,
+        name: "Coles Long Grain Rice 1kg",
+        packageSize: 1,
+        packageUnit: "kg",
+        price: 3,
         imageUrl: null,
       },
       cheese: {
-        productName: "Coles Tasty Cheese 500g",
-        unitPrice: 6.5,
+        name: "Coles Tasty Cheese 500g",
+        packageSize: 500,
+        packageUnit: "g",
+        price: 6.5,
         imageUrl: null,
       },
       flour: {
-        productName: "Coles Plain Flour 1kg",
-        unitPrice: 2,
+        name: "Coles Plain Flour 1kg",
+        packageSize: 1,
+        packageUnit: "kg",
+        price: 2,
         imageUrl: null,
       },
       chicken: {
-        productName: "Coles RSPCA Approved Chicken Breast",
-        unitPrice: 11,
+        name: "Coles RSPCA Approved Chicken Breast 1kg",
+        packageSize: 1,
+        packageUnit: "kg",
+        price: 11,
         imageUrl: null,
       },
       bread: {
-        productName: "Coles White Sandwich Bread",
-        unitPrice: 3.5,
+        name: "Coles White Sandwich Bread",
+        packageSize: 1,
+        packageUnit: "x",
+        price: 3.5,
         imageUrl: null,
       },
       pasta: {
-        productName: "Coles Penne Pasta 500g",
-        unitPrice: 2,
+        name: "Coles Penne Pasta 500g",
+        packageSize: 500,
+        packageUnit: "g",
+        price: 2,
         imageUrl: null,
       },
     },
@@ -78,43 +100,73 @@ const storePricing: Record<"coles" | "woolworths", StorePricing> = {
     name: "Woolworths",
     prices: {
       eggs: {
-        productName: "Woolworths Free Range Eggs x12",
-        unitPrice: 7,
+        name: "Woolworths Free Range Eggs x12",
+        packageSize: 12,
+        packageUnit: "x",
+        price: 7,
         imageUrl: null,
       },
       butter: {
-        productName: "Woolworths Unsalted Butter 500g",
-        unitPrice: 7,
+        name: "Woolworths Unsalted Butter 500g",
+        packageSize: 500,
+        packageUnit: "g",
+        price: 7,
         imageUrl: null,
       },
       milk: {
-        productName: "Woolworths Full Cream Milk 2L",
-        unitPrice: 3.3,
+        name: "Woolworths Full Cream Milk 2L",
+        packageSize: 2,
+        packageUnit: "L",
+        price: 3.3,
         imageUrl: null,
       },
       sugar: {
-        productName: "Woolworths White Sugar 1kg",
-        unitPrice: 2.4,
+        name: "Woolworths White Sugar 1kg",
+        packageSize: 1,
+        packageUnit: "kg",
+        price: 2.4,
+        imageUrl: null,
+      },
+      rice: {
+        name: "Woolworths Long Grain Rice 1kg",
+        packageSize: 1,
+        packageUnit: "kg",
+        price: 3.2,
         imageUrl: null,
       },
       cheese: {
-        productName: "Woolworths Tasty Cheese 500g",
-        unitPrice: 7.2,
+        name: "Woolworths Tasty Cheese 500g",
+        packageSize: 500,
+        packageUnit: "g",
+        price: 7.2,
+        imageUrl: null,
+      },
+      flour: {
+        name: "Woolworths Plain Flour 1kg",
+        packageSize: 1,
+        packageUnit: "kg",
+        price: 2.2,
         imageUrl: null,
       },
       chicken: {
-        productName: "Woolworths Chicken Breast Fillets",
-        unitPrice: 12.5,
+        name: "Woolworths Chicken Breast Fillets 1kg",
+        packageSize: 1,
+        packageUnit: "kg",
+        price: 12.5,
         imageUrl: null,
       },
       bread: {
-        productName: "Woolworths Soft White Sandwich Bread",
-        unitPrice: 3.8,
+        name: "Woolworths Soft White Sandwich Bread",
+        packageSize: 1,
+        packageUnit: "x",
+        price: 3.8,
         imageUrl: null,
       },
       pasta: {
-        productName: "Woolworths Penne Pasta 500g",
-        unitPrice: 2.3,
+        name: "Woolworths Penne Pasta 500g",
+        packageSize: 500,
+        packageUnit: "g",
+        price: 2.3,
         imageUrl: null,
       },
     },
@@ -124,6 +176,44 @@ const storePricing: Record<"coles" | "woolworths", StorePricing> = {
 const normaliseItemName = (name: string) =>
   name.trim().replace(/\s+/g, " ").toLowerCase();
 
+const normaliseAmount = (quantity: number, unit: string) => {
+  const normalisedUnit = unit.trim().toLowerCase();
+
+  if (normalisedUnit === "kg") {
+    return { quantity: quantity * 1000, unit: "g" };
+  }
+  if (normalisedUnit === "l") {
+    return { quantity: quantity * 1000, unit: "ml" };
+  }
+
+  return { quantity, unit: normalisedUnit };
+};
+
+const getPacksNeeded = (
+  requestedQuantity: number,
+  requestedUnit: string,
+  priceEntry: PriceEntry,
+) => {
+  const requestedAmount = normaliseAmount(
+    requestedQuantity,
+    requestedUnit,
+  );
+  const packageAmount = normaliseAmount(
+    priceEntry.packageSize,
+    priceEntry.packageUnit,
+  );
+
+  // Mismatched units are a data-quality issue, so do not calculate a price.
+  if (
+    requestedAmount.unit !== packageAmount.unit ||
+    packageAmount.quantity <= 0
+  ) {
+    return null;
+  }
+
+  return Math.ceil(requestedAmount.quantity / packageAmount.quantity);
+};
+
 const formatPrice = (price: number) => `$${price.toFixed(2)}`;
 
 export default function ComparePage() {
@@ -132,13 +222,20 @@ export default function ComparePage() {
     useState<ComparisonView>("cheapest");
   const activeStore =
     storePricing[activeView === "cheapest" ? "coles" : "woolworths"];
-  const products = items.map((item) => ({
-    item,
-    priceEntry: activeStore.prices[normaliseItemName(item.name)],
-  }));
+  const products = items.map((item) => {
+    const priceEntry = activeStore.prices[normaliseItemName(item.name)];
+    const packsNeeded = priceEntry
+      ? getPacksNeeded(item.quantity, item.unit, priceEntry)
+      : null;
+
+    return { item, priceEntry, packsNeeded };
+  });
   const total = products.reduce(
-    (sum, { item, priceEntry }) =>
-      sum + (priceEntry?.unitPrice ?? 0) * item.quantity,
+    (sum, { priceEntry, packsNeeded }) =>
+      sum +
+      (priceEntry && packsNeeded !== null
+        ? priceEntry.price * packsNeeded
+        : 0),
     0,
   );
 
@@ -197,11 +294,13 @@ export default function ComparePage() {
             ) : (
               <>
                 <div className="mt-6 space-y-4">
-                  {products.map(({ item, priceEntry }) => (
+                  {products.map(({ item, priceEntry, packsNeeded }) => (
                     <article
                       key={item.id}
                       className={`rounded-[20px] bg-[#FFF2C0] p-3 ${
-                        priceEntry ? "" : "opacity-60"
+                        priceEntry && packsNeeded !== null
+                          ? ""
+                          : "opacity-60"
                       }`}
                     >
                       <div className="flex items-center gap-4 rounded-2xl bg-white p-3">
@@ -210,17 +309,17 @@ export default function ComparePage() {
                           aria-hidden="true"
                         />
                         <p className="font-indie-flower text-2xl text-black">
-                          {priceEntry?.productName ?? item.name}
+                          {priceEntry?.name ?? item.name}
                         </p>
                       </div>
 
                       <div className="mt-3 grid grid-cols-2 gap-3">
                         <div className="rounded-xl bg-white p-3 font-indie-flower text-xl text-black">
-                          Quantity: {item.quantity}
+                          Quantity: {packsNeeded ?? "—"}
                         </div>
                         <div className="rounded-xl bg-white p-3 font-indie-flower text-xl text-black">
-                          {priceEntry
-                            ? `Price: ${formatPrice(priceEntry.unitPrice)}`
+                          {priceEntry && packsNeeded !== null
+                            ? `Price: ${formatPrice(priceEntry.price * packsNeeded)}`
                             : `Not available at ${activeStore.name}`}
                         </div>
                       </div>

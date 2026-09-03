@@ -15,9 +15,12 @@ export type ShoppingItem = {
   unit: string;
 };
 
+export type ShoppingItemInput = Omit<ShoppingItem, "id">;
+
 type ShoppingListContextValue = {
   items: ShoppingItem[];
   addItem: (input: string) => ShoppingItem | null;
+  addItems: (items: ShoppingItemInput[]) => void;
   removeItem: (id: number) => void;
   updateQuantity: (id: number, quantity: number) => void;
   updateUnit: (id: number, unit: string) => void;
@@ -62,6 +65,37 @@ const parseNewItem = (value: string) => {
   };
 };
 
+const normaliseItemName = (name: string) =>
+  name.trim().replace(/\s+/g, " ").toLowerCase();
+
+const mergeShoppingItems = (
+  currentItems: ShoppingItem[],
+  newItems: ShoppingItemInput[],
+  getNextId: () => number,
+) => {
+  const mergedItems = [...currentItems];
+
+  newItems.forEach((newItem) => {
+    const existingIndex = mergedItems.findIndex(
+      (item) =>
+        normaliseItemName(item.name) === normaliseItemName(newItem.name),
+    );
+
+    if (existingIndex >= 0) {
+      const existingItem = mergedItems[existingIndex];
+      mergedItems[existingIndex] = {
+        ...existingItem,
+        quantity: existingItem.quantity + newItem.quantity,
+      };
+      return;
+    }
+
+    mergedItems.push({ id: getNextId(), ...newItem });
+  });
+
+  return mergedItems;
+};
+
 const ShoppingListContext = createContext<
   ShoppingListContextValue | undefined
 >(undefined);
@@ -74,14 +108,37 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
     const value = input.trim();
     if (!value) return null;
 
-    const item = {
-      id: nextId.current,
-      ...parseNewItem(value),
-    };
+    const parsedItem = parseNewItem(value);
+    const existingItem = items.find(
+      (item) =>
+        normaliseItemName(item.name) === normaliseItemName(parsedItem.name),
+    );
+    const reservedId = nextId.current;
+    const mergedItem = existingItem
+      ? {
+          ...existingItem,
+          quantity: existingItem.quantity + parsedItem.quantity,
+        }
+      : { id: reservedId, ...parsedItem };
 
-    nextId.current += 1;
-    setItems((currentItems) => [...currentItems, item]);
-    return item;
+    if (!existingItem) {
+      nextId.current += 1;
+    }
+
+    setItems((currentItems) =>
+      mergeShoppingItems(currentItems, [parsedItem], () => reservedId),
+    );
+    return mergedItem;
+  };
+
+  const addItems = (newItems: ShoppingItemInput[]) => {
+    setItems((currentItems) =>
+      mergeShoppingItems(currentItems, newItems, () => {
+        const id = nextId.current;
+        nextId.current += 1;
+        return id;
+      }),
+    );
   };
 
   const removeItem = (id: number) => {
@@ -110,7 +167,14 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
 
   return (
     <ShoppingListContext.Provider
-      value={{ items, addItem, removeItem, updateQuantity, updateUnit }}
+      value={{
+        items,
+        addItem,
+        addItems,
+        removeItem,
+        updateQuantity,
+        updateUnit,
+      }}
     >
       {children}
     </ShoppingListContext.Provider>
