@@ -1,124 +1,86 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Header from "../../../components/Header";
+import { getMealsFromIngredients } from "../../lib/api";
+import {
+  formatIngredientName,
+  normaliseName,
+} from "../../lib/ingredients";
+import { startingPantryIngredients } from "../../lib/mockData";
+import type { Meal } from "../../types";
 
 type Preference = "quickMeal" | "highProtein";
 
-type Meal = {
-  id: number;
-  name: string;
-  ingredients: string[];
-  isQuickMeal: boolean;
-  isHighProtein: boolean;
-};
-
-const startingIngredients = ["Eggs", "Milk", "Butter", "Rice", "Cheese"];
-
-const meals: Meal[] = [
-  {
-    id: 1,
-    name: "Cheesy Egg Fried Rice",
-    ingredients: ["eggs", "rice", "cheese", "butter"],
-    isQuickMeal: true,
-    isHighProtein: true,
-  },
-  {
-    id: 2,
-    name: "Creamy Cheese Omelette",
-    ingredients: ["eggs", "milk", "cheese", "butter"],
-    isQuickMeal: true,
-    isHighProtein: true,
-  },
-  {
-    id: 3,
-    name: "Buttery Rice Bowl",
-    ingredients: ["rice", "butter"],
-    isQuickMeal: true,
-    isHighProtein: false,
-  },
-  {
-    id: 4,
-    name: "Homestyle Rice Pudding",
-    ingredients: ["rice", "milk", "sugar"],
-    isQuickMeal: false,
-    isHighProtein: false,
-  },
-  {
-    id: 5,
-    name: "Protein Pancakes",
-    ingredients: ["eggs", "milk", "oats"],
-    isQuickMeal: true,
-    isHighProtein: true,
-  },
-  {
-    id: 6,
-    name: "Slow Roasted Tomato Pasta",
-    ingredients: ["tomato", "pasta", "garlic"],
-    isQuickMeal: false,
-    isHighProtein: false,
-  },
-];
-
-const normaliseIngredient = (value: string) =>
-  value.trim().replace(/\s+/g, " ").toLowerCase();
-
-const formatIngredient = (value: string) => {
-  const trimmedValue = value.trim().replace(/\s+/g, " ");
-  return trimmedValue.charAt(0).toUpperCase() + trimmedValue.slice(1);
-};
-
 const getMatchCount = (meal: Meal, ingredients: string[]) => {
-  const ingredientSet = new Set(ingredients.map(normaliseIngredient));
+  const ingredientSet = new Set(ingredients.map(normaliseName));
   return meal.ingredients.filter((ingredient) =>
-    ingredientSet.has(normaliseIngredient(ingredient)),
+    ingredientSet.has(normaliseName(ingredient.name)),
   ).length;
 };
 
 export default function WhatCanIMakePage() {
-  const [ingredients, setIngredients] = useState(startingIngredients);
+  const [ingredients, setIngredients] = useState(startingPantryIngredients);
   const [ingredientInput, setIngredientInput] = useState("");
   const [preferences, setPreferences] = useState<Preference[]>([]);
   const [searchedIngredients, setSearchedIngredients] =
-    useState(startingIngredients);
+    useState(startingPantryIngredients);
   const [searchedPreferences, setSearchedPreferences] = useState<Preference[]>(
     [],
   );
+  const requestKey = JSON.stringify([
+    searchedIngredients,
+    searchedPreferences,
+  ]);
+  const [response, setResponse] = useState<{
+    requestKey: string;
+    meals: Meal[];
+  } | null>(null);
+  const [errorRequestKey, setErrorRequestKey] = useState<string | null>(
+    null,
+  );
 
-  const mealMatches = meals
-    .map((meal) => ({
-      meal,
-      matchCount: getMatchCount(meal, searchedIngredients),
-    }))
-    .filter(({ meal, matchCount }) => {
-      if (matchCount === 0) return false;
-      if (
-        searchedPreferences.includes("quickMeal") &&
-        !meal.isQuickMeal
-      ) {
-        return false;
-      }
-      if (
-        searchedPreferences.includes("highProtein") &&
-        !meal.isHighProtein
-      ) {
-        return false;
-      }
-      return true;
+  useEffect(() => {
+    let ignore = false;
+
+    getMealsFromIngredients(searchedIngredients, {
+      quickMeal: searchedPreferences.includes("quickMeal"),
+      highProtein: searchedPreferences.includes("highProtein"),
     })
-    .sort((first, second) => second.matchCount - first.matchCount);
+      .then((nextMeals) => {
+        if (ignore) return;
+        setResponse({ requestKey, meals: nextMeals });
+      })
+      .catch(() => {
+        if (ignore) return;
+        setErrorRequestKey(requestKey);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [requestKey, searchedIngredients, searchedPreferences]);
+
+  const meals =
+    response?.requestKey === requestKey ? response.meals : [];
+  const status =
+    response?.requestKey === requestKey
+      ? "success"
+      : errorRequestKey === requestKey
+        ? "error"
+        : "loading";
+  const mealMatches = meals.map((meal) => ({
+    meal,
+    matchCount: getMatchCount(meal, searchedIngredients),
+  }));
 
   const addIngredient = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const ingredient = formatIngredient(ingredientInput);
+    const ingredient = normaliseName(ingredientInput);
     if (!ingredient) return;
 
-    const alreadyAdded = ingredients.some(
-      (currentIngredient) =>
-        normaliseIngredient(currentIngredient) ===
-        normaliseIngredient(ingredient),
-    );
+    const alreadyAdded = ingredients.includes(ingredient);
 
     if (!alreadyAdded) {
       setIngredients((currentIngredients) => [
@@ -172,22 +134,26 @@ export default function WhatCanIMakePage() {
             </form>
 
             <div className="mt-6 flex flex-wrap gap-4">
-              {ingredients.map((ingredient) => (
-                <div
-                  key={ingredient}
-                  className="flex items-center gap-3 rounded-xl bg-[#FFE08A] px-5 py-3 font-indie-flower text-2xl text-black"
-                >
-                  <span>{ingredient}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeIngredient(ingredient)}
-                    aria-label={`Remove ${ingredient}`}
-                    className="rounded px-1 text-xl leading-none focus:ring-2 focus:ring-black focus:outline-none"
+              {ingredients.map((ingredient) => {
+                const displayName = formatIngredientName(ingredient);
+
+                return (
+                  <div
+                    key={ingredient}
+                    className="flex items-center gap-3 rounded-xl bg-[#FFE08A] px-5 py-3 font-indie-flower text-2xl text-black"
                   >
-                    ×
-                  </button>
-                </div>
-              ))}
+                    <span>{displayName}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeIngredient(ingredient)}
+                      aria-label={`Remove ${displayName}`}
+                      className="rounded px-1 text-xl leading-none focus:ring-2 focus:ring-black focus:outline-none"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="my-6 h-px w-full bg-[#FFC518]" />
@@ -236,7 +202,15 @@ export default function WhatCanIMakePage() {
               Meals you can make
             </h2>
 
-            {searchedIngredients.length === 0 ? (
+            {status === "loading" ? (
+              <p className="mt-6 font-indie-flower text-2xl text-black">
+                Loading meals...
+              </p>
+            ) : status === "error" ? (
+              <p className="mt-6 font-indie-flower text-2xl text-black">
+                We couldn&apos;t load meals right now — please try again.
+              </p>
+            ) : searchedIngredients.length === 0 ? (
               <p className="mt-6 font-indie-flower text-2xl text-black">
                 Add some ingredients to see what you can make!
               </p>

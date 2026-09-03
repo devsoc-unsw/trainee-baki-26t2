@@ -1,217 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Header from "../../../components/Header";
 import ShoppingListCard from "../../../components/ShoppingListCard";
+import { getStoreComparison } from "../../lib/api";
 import { useShoppingList } from "../../context/ShoppingListContext";
+import type { StoreOffer } from "../../types";
 
-type ComparisonView = "cheapest" | "location";
+type ComparisonView = "cheapest" | "closest";
 
-type PriceEntry = {
-  name: string;
-  packageSize: number;
-  packageUnit: string;
-  price: number;
-  imageUrl: string | null;
-};
-
-type StorePricing = {
-  name: string;
-  prices: Partial<Record<string, PriceEntry>>;
-};
-
-const storePricing: Record<"coles" | "woolworths", StorePricing> = {
-  coles: {
-    name: "Coles",
-    prices: {
-      eggs: {
-        name: "Coles Free Range Eggs x12",
-        packageSize: 12,
-        packageUnit: "x",
-        price: 6.5,
-        imageUrl: null,
-      },
-      butter: {
-        name: "Coles Unsalted Butter 250g",
-        packageSize: 250,
-        packageUnit: "g",
-        price: 4.8,
-        imageUrl: null,
-      },
-      milk: {
-        name: "Coles Full Cream Milk 2L",
-        packageSize: 2,
-        packageUnit: "L",
-        price: 3.1,
-        imageUrl: null,
-      },
-      sugar: {
-        name: "Coles White Sugar 1kg",
-        packageSize: 1,
-        packageUnit: "kg",
-        price: 2.2,
-        imageUrl: null,
-      },
-      rice: {
-        name: "Coles Long Grain Rice 1kg",
-        packageSize: 1,
-        packageUnit: "kg",
-        price: 3,
-        imageUrl: null,
-      },
-      cheese: {
-        name: "Coles Tasty Cheese 500g",
-        packageSize: 500,
-        packageUnit: "g",
-        price: 6.5,
-        imageUrl: null,
-      },
-      flour: {
-        name: "Coles Plain Flour 1kg",
-        packageSize: 1,
-        packageUnit: "kg",
-        price: 2,
-        imageUrl: null,
-      },
-      chicken: {
-        name: "Coles RSPCA Approved Chicken Breast 1kg",
-        packageSize: 1,
-        packageUnit: "kg",
-        price: 11,
-        imageUrl: null,
-      },
-      bread: {
-        name: "Coles White Sandwich Bread",
-        packageSize: 1,
-        packageUnit: "x",
-        price: 3.5,
-        imageUrl: null,
-      },
-      pasta: {
-        name: "Coles Penne Pasta 500g",
-        packageSize: 500,
-        packageUnit: "g",
-        price: 2,
-        imageUrl: null,
-      },
-    },
-  },
-  woolworths: {
-    name: "Woolworths",
-    prices: {
-      eggs: {
-        name: "Woolworths Free Range Eggs x12",
-        packageSize: 12,
-        packageUnit: "x",
-        price: 7,
-        imageUrl: null,
-      },
-      butter: {
-        name: "Woolworths Unsalted Butter 500g",
-        packageSize: 500,
-        packageUnit: "g",
-        price: 7,
-        imageUrl: null,
-      },
-      milk: {
-        name: "Woolworths Full Cream Milk 2L",
-        packageSize: 2,
-        packageUnit: "L",
-        price: 3.3,
-        imageUrl: null,
-      },
-      sugar: {
-        name: "Woolworths White Sugar 1kg",
-        packageSize: 1,
-        packageUnit: "kg",
-        price: 2.4,
-        imageUrl: null,
-      },
-      rice: {
-        name: "Woolworths Long Grain Rice 1kg",
-        packageSize: 1,
-        packageUnit: "kg",
-        price: 3.2,
-        imageUrl: null,
-      },
-      cheese: {
-        name: "Woolworths Tasty Cheese 500g",
-        packageSize: 500,
-        packageUnit: "g",
-        price: 7.2,
-        imageUrl: null,
-      },
-      flour: {
-        name: "Woolworths Plain Flour 1kg",
-        packageSize: 1,
-        packageUnit: "kg",
-        price: 2.2,
-        imageUrl: null,
-      },
-      chicken: {
-        name: "Woolworths Chicken Breast Fillets 1kg",
-        packageSize: 1,
-        packageUnit: "kg",
-        price: 12.5,
-        imageUrl: null,
-      },
-      bread: {
-        name: "Woolworths Soft White Sandwich Bread",
-        packageSize: 1,
-        packageUnit: "x",
-        price: 3.8,
-        imageUrl: null,
-      },
-      pasta: {
-        name: "Woolworths Penne Pasta 500g",
-        packageSize: 500,
-        packageUnit: "g",
-        price: 2.3,
-        imageUrl: null,
-      },
-    },
-  },
-};
-
-const normaliseItemName = (name: string) =>
-  name.trim().replace(/\s+/g, " ").toLowerCase();
-
-const normaliseAmount = (quantity: number, unit: string) => {
-  const normalisedUnit = unit.trim().toLowerCase();
-
-  if (normalisedUnit === "kg") {
-    return { quantity: quantity * 1000, unit: "g" };
-  }
-  if (normalisedUnit === "l") {
-    return { quantity: quantity * 1000, unit: "ml" };
-  }
-
-  return { quantity, unit: normalisedUnit };
-};
-
-const getPacksNeeded = (
-  requestedQuantity: number,
-  requestedUnit: string,
-  priceEntry: PriceEntry,
-) => {
-  const requestedAmount = normaliseAmount(
-    requestedQuantity,
-    requestedUnit,
-  );
-  const packageAmount = normaliseAmount(
-    priceEntry.packageSize,
-    priceEntry.packageUnit,
-  );
-
-  // Mismatched units are a data-quality issue, so do not calculate a price.
-  if (
-    requestedAmount.unit !== packageAmount.unit ||
-    packageAmount.quantity <= 0
-  ) {
-    return null;
-  }
-
-  return Math.ceil(requestedAmount.quantity / packageAmount.quantity);
+const storeIdByView: Record<ComparisonView, string> = {
+  cheapest: "coles",
+  closest: "woolworths",
 };
 
 const formatPrice = (price: number) => `$${price.toFixed(2)}`;
@@ -220,23 +20,43 @@ export default function ComparePage() {
   const { items } = useShoppingList();
   const [activeView, setActiveView] =
     useState<ComparisonView>("cheapest");
-  const activeStore =
-    storePricing[activeView === "cheapest" ? "coles" : "woolworths"];
-  const products = items.map((item) => {
-    const priceEntry = activeStore.prices[normaliseItemName(item.name)];
-    const packsNeeded = priceEntry
-      ? getPacksNeeded(item.quantity, item.unit, priceEntry)
-      : null;
+  const requestKey = JSON.stringify(items);
+  const [response, setResponse] = useState<{
+    requestKey: string;
+    offers: StoreOffer[];
+  } | null>(null);
+  const [errorRequestKey, setErrorRequestKey] = useState<string | null>(
+    null,
+  );
 
-    return { item, priceEntry, packsNeeded };
-  });
-  const total = products.reduce(
-    (sum, { priceEntry, packsNeeded }) =>
-      sum +
-      (priceEntry && packsNeeded !== null
-        ? priceEntry.price * packsNeeded
-        : 0),
-    0,
+  useEffect(() => {
+    let ignore = false;
+
+    getStoreComparison(items)
+      .then((nextOffers) => {
+        if (ignore) return;
+        setResponse({ requestKey, offers: nextOffers });
+      })
+      .catch(() => {
+        if (ignore) return;
+        setErrorRequestKey(requestKey);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [items, requestKey]);
+
+  const offers =
+    response?.requestKey === requestKey ? response.offers : [];
+  const status =
+    response?.requestKey === requestKey
+      ? "success"
+      : errorRequestKey === requestKey
+        ? "error"
+        : "loading";
+  const activeOffer = offers.find(
+    (offer) => offer.store.id === storeIdByView[activeView],
   );
 
   return (
@@ -250,7 +70,11 @@ export default function ComparePage() {
 
           <section
             className="w-full lg:w-3/5"
-            aria-label={`${activeStore.name} comparison`}
+            aria-label={
+              activeOffer
+                ? `${activeOffer.store.name} comparison`
+                : "Store comparison"
+            }
           >
             <div className="flex flex-wrap items-center gap-3">
               <button
@@ -267,17 +91,17 @@ export default function ComparePage() {
               </button>
               <button
                 type="button"
-                onClick={() => setActiveView("location")}
-                aria-pressed={activeView === "location"}
+                onClick={() => setActiveView("closest")}
+                aria-pressed={activeView === "closest"}
                 className={`rounded-xl px-8 py-4 font-indie-flower text-2xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none ${
-                  activeView === "location"
+                  activeView === "closest"
                     ? "bg-[#FFC518]"
                     : "bg-[#FFF2C0]"
                 }`}
               >
                 Location
               </button>
-              {activeView === "location" && (
+              {activeView === "closest" && (
                 <button
                   type="button"
                   className="ml-auto rounded-xl bg-[#A5D8F3] px-8 py-4 font-indie-flower text-2xl text-black focus:ring-2 focus:ring-[#FFC518] focus:ring-offset-2 focus:outline-none"
@@ -287,20 +111,27 @@ export default function ComparePage() {
               )}
             </div>
 
-            {items.length === 0 ? (
+            {status === "loading" ? (
+              <p className="mt-6 font-indie-flower text-2xl text-black">
+                Loading store comparison...
+              </p>
+            ) : status === "error" || !activeOffer ? (
+              <p className="mt-6 font-indie-flower text-2xl text-black">
+                We couldn&apos;t compare stores right now — please try
+                again.
+              </p>
+            ) : items.length === 0 ? (
               <p className="mt-6 font-indie-flower text-2xl text-black">
                 Your list is empty — add some items to compare stores.
               </p>
             ) : (
               <>
                 <div className="mt-6 space-y-4">
-                  {products.map(({ item, priceEntry, packsNeeded }) => (
+                  {activeOffer.products.map((product, index) => (
                     <article
-                      key={item.id}
+                      key={items[index]?.id ?? `${product.listItemName}-${index}`}
                       className={`rounded-[20px] bg-[#FFF2C0] p-3 ${
-                        priceEntry && packsNeeded !== null
-                          ? ""
-                          : "opacity-60"
+                        product.available ? "" : "opacity-60"
                       }`}
                     >
                       <div className="flex items-center gap-4 rounded-2xl bg-white p-3">
@@ -309,18 +140,19 @@ export default function ComparePage() {
                           aria-hidden="true"
                         />
                         <p className="font-indie-flower text-2xl text-black">
-                          {priceEntry?.name ?? item.name}
+                          {product.displayName}
                         </p>
                       </div>
 
                       <div className="mt-3 grid grid-cols-2 gap-3">
                         <div className="rounded-xl bg-white p-3 font-indie-flower text-xl text-black">
-                          Quantity: {packsNeeded ?? "—"}
+                          Quantity:{" "}
+                          {product.available ? product.packsNeeded : "—"}
                         </div>
                         <div className="rounded-xl bg-white p-3 font-indie-flower text-xl text-black">
-                          {priceEntry && packsNeeded !== null
-                            ? `Price: ${formatPrice(priceEntry.price * packsNeeded)}`
-                            : `Not available at ${activeStore.name}`}
+                          {product.available
+                            ? `Price: ${formatPrice(product.lineTotal)}`
+                            : `Not available at ${activeOffer.store.name}`}
                         </div>
                       </div>
                     </article>
@@ -329,7 +161,7 @@ export default function ComparePage() {
 
                 <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="rounded-xl bg-[#FFF2C0] px-6 py-4 font-indie-flower text-2xl text-black">
-                    Total: {formatPrice(total)}
+                    Total: {formatPrice(activeOffer.total)}
                   </div>
                   <button
                     type="button"

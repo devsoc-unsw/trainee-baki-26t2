@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useShoppingList } from "../src/context/ShoppingListContext";
+import { formatIngredientName } from "../src/lib/ingredients";
 
 const isValidQuantity = (value: string) => {
   const quantity = Number(value);
@@ -75,6 +76,7 @@ export default function ShoppingListCard() {
             {items.map((item) => {
               const quantityValue = quantityDrafts[item.id] ?? "";
               const hasQuantityError = !isValidQuantity(quantityValue);
+              const displayName = formatIngredientName(item.name);
 
               return (
                 <li key={item.id}>
@@ -86,7 +88,7 @@ export default function ShoppingListCard() {
                       onChange={(event) =>
                         handleUpdateQuantity(item.id, event.target.value)
                       }
-                      aria-label={`${item.name} quantity`}
+                      aria-label={`${displayName} quantity`}
                       aria-invalid={hasQuantityError}
                       className="w-16 rounded bg-transparent px-1 outline-none focus:ring-2 focus:ring-black"
                     />
@@ -96,14 +98,14 @@ export default function ShoppingListCard() {
                       onChange={(event) =>
                         updateUnit(item.id, event.target.value)
                       }
-                      aria-label={`${item.name} unit`}
+                      aria-label={`${displayName} unit`}
                       className="w-12 rounded bg-transparent px-1 outline-none focus:ring-2 focus:ring-black"
                     />
-                    <span className="flex-1">{item.name}</span>
+                    <span className="flex-1">{displayName}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveItem(item.id)}
-                      aria-label={`Remove ${item.name}`}
+                      aria-label={`Remove ${displayName}`}
                       className="rounded px-2 text-2xl leading-none hover:bg-black/10 focus:ring-2 focus:ring-black focus:outline-none"
                     >
                       ×

@@ -7,34 +7,18 @@ import {
   useState,
 } from "react";
 import type { ReactNode } from "react";
-
-export type ShoppingItem = {
-  id: number;
-  name: string;
-  quantity: number;
-  unit: string;
-};
-
-export type ShoppingItemInput = Omit<ShoppingItem, "id">;
+import { normaliseName } from "@/lib/ingredients";
+import { startingGroceryItems } from "@/lib/mockData";
+import type { GroceryItem, Ingredient } from "@/types";
 
 type ShoppingListContextValue = {
-  items: ShoppingItem[];
-  addItem: (input: string) => ShoppingItem | null;
-  addItems: (items: ShoppingItemInput[]) => void;
+  items: GroceryItem[];
+  addItem: (input: string) => GroceryItem | null;
+  addItems: (items: Ingredient[]) => void;
   removeItem: (id: number) => void;
   updateQuantity: (id: number, quantity: number) => void;
   updateUnit: (id: number, unit: string) => void;
 };
-
-const startingItems: ShoppingItem[] = [
-  { id: 1, name: "Eggs", quantity: 8, unit: "x" },
-  { id: 2, name: "Butter", quantity: 150, unit: "g" },
-  { id: 3, name: "Milk", quantity: 600, unit: "ml" },
-  { id: 4, name: "Sugar", quantity: 200, unit: "g" },
-];
-
-const formatItemName = (name: string) =>
-  name.charAt(0).toUpperCase() + name.slice(1);
 
 const parseNewItem = (value: string) => {
   const unitMatch = value.match(
@@ -45,7 +29,7 @@ const parseNewItem = (value: string) => {
     return {
       quantity: Number(unitMatch[1]),
       unit: unitMatch[2].toLowerCase(),
-      name: formatItemName(unitMatch[3].trim()),
+      name: normaliseName(unitMatch[3]),
     };
   }
 
@@ -54,31 +38,30 @@ const parseNewItem = (value: string) => {
     return {
       quantity: Number(quantityMatch[1]),
       unit: "x",
-      name: formatItemName(quantityMatch[2].trim()),
+      name: normaliseName(quantityMatch[2]),
     };
   }
 
   return {
     quantity: 1,
     unit: "x",
-    name: formatItemName(value),
+    name: normaliseName(value),
   };
 };
 
-const normaliseItemName = (name: string) =>
-  name.trim().replace(/\s+/g, " ").toLowerCase();
-
 const mergeShoppingItems = (
-  currentItems: ShoppingItem[],
-  newItems: ShoppingItemInput[],
+  currentItems: GroceryItem[],
+  newItems: Ingredient[],
   getNextId: () => number,
 ) => {
   const mergedItems = [...currentItems];
 
   newItems.forEach((newItem) => {
+    if (newItem.quantity === null) return;
+
     const existingIndex = mergedItems.findIndex(
       (item) =>
-        normaliseItemName(item.name) === normaliseItemName(newItem.name),
+        normaliseName(item.name) === normaliseName(newItem.name),
     );
 
     if (existingIndex >= 0) {
@@ -90,7 +73,12 @@ const mergeShoppingItems = (
       return;
     }
 
-    mergedItems.push({ id: getNextId(), ...newItem });
+    mergedItems.push({
+      id: getNextId(),
+      name: newItem.name,
+      quantity: newItem.quantity,
+      unit: newItem.unit,
+    });
   });
 
   return mergedItems;
@@ -101,8 +89,8 @@ const ShoppingListContext = createContext<
 >(undefined);
 
 export function ShoppingListProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState(startingItems);
-  const nextId = useRef(startingItems.length + 1);
+  const [items, setItems] = useState(startingGroceryItems);
+  const nextId = useRef(startingGroceryItems.length + 1);
 
   const addItem = (input: string) => {
     const value = input.trim();
@@ -111,7 +99,7 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
     const parsedItem = parseNewItem(value);
     const existingItem = items.find(
       (item) =>
-        normaliseItemName(item.name) === normaliseItemName(parsedItem.name),
+        normaliseName(item.name) === normaliseName(parsedItem.name),
     );
     const reservedId = nextId.current;
     const mergedItem = existingItem
@@ -131,7 +119,7 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
     return mergedItem;
   };
 
-  const addItems = (newItems: ShoppingItemInput[]) => {
+  const addItems = (newItems: Ingredient[]) => {
     setItems((currentItems) =>
       mergeShoppingItems(currentItems, newItems, () => {
         const id = nextId.current;
