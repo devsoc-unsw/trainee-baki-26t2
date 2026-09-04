@@ -1,14 +1,27 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import {
+  Indie_Flower,
+  Island_Moments,
+  Special_Elite,
+} from "next/font/google";
+import { ShoppingListProvider } from "../context/ShoppingListContext";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const specialElite = Special_Elite({
+  variable: "--font-special-elite",
+  weight: "400",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const islandMoments = Island_Moments({
+  variable: "--font-island-moments",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+const indieFlower = Indie_Flower({
+  variable: "--font-indie-flower",
+  weight: "400",
   subsets: ["latin"],
 });
 
@@ -21,9 +34,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${specialElite.variable} ${islandMoments.variable} ${indieFlower.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ShoppingListProvider>{children}</ShoppingListProvider>
+      </body>
     </html>
   );
 }
