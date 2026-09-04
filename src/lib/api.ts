@@ -222,27 +222,53 @@ const mealFromMealDB = (mdbMeal: MealDBMeal): Meal => {
 };
 
 /**
- * Looks up a meal by name from TheMealDB.
+ * Checks whether a meal's derived tags satisfy every requested
+ * restriction.
+ *
+ * @param meal - Meal whose tags come from deriveMealTags.
+ * @param restrictions - Dietary requirements the caller wants met.
+ * @returns true if every restriction is satisfied. Empty restrictions
+ *          trivially return true.
+ *
+ * "nut-allergy" is inverted: the tag means "meal contains nuts", so
+ * a user with the nut-allergy restriction wants meals that DO NOT
+ * carry it. The other tags mean "meal is <diet>", so a matching
+ * restriction requires the tag to be present.
+ */
+const mealSatisfiesRestrictions = (
+  meal: Meal,
+  restrictions: DietaryTag[],
+): boolean =>
+  restrictions.every((restriction) =>
+    restriction === "nut-allergy"
+      ? !meal.dietaryTags.includes(restriction)
+      : meal.dietaryTags.includes(restriction),
+  );
+
+/**
+ * Looks up a meal by name from TheMealDB, filtered by dietary
+ * restrictions.
  *
  * @param name - User-entered meal name.
- * @param restrictions - Unused. TheMealDB's search.php does not expose
- *   dietary tags, so applying restrictions would require additional
- *   lookups per candidate. The parameter is kept to preserve the
- *   signature for callers that may later hit a backend that can filter.
- * @returns The first matching meal mapped onto our Meal shape, or null
- *          when TheMealDB returns no results.
+ * @param restrictions - Dietary tags the returned meal must satisfy.
+ *   Empty means no filtering.
+ * @returns The first matching meal that satisfies every restriction,
+ *          or null when TheMealDB returns no results or no candidate
+ *          passes the filter.
  * @throws When the network request to TheMealDB fails.
  */
 export async function getMealByName(
   name: string,
   restrictions: DietaryTag[],
 ): Promise<Meal | null> {
-  void restrictions;
-
   const matches = await searchMealsByName(name);
-  if (matches.length === 0) return null;
-
-  return mealFromMealDB(matches[0]);
+  for (const candidate of matches) {
+    const meal = mealFromMealDB(candidate);
+    if (mealSatisfiesRestrictions(meal, restrictions)) {
+      return meal;
+    }
+  }
+  return null;
 }
 
 export async function getMealsFromIngredients(
