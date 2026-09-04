@@ -28,10 +28,16 @@ export async function searchMealsByName(name: string) : Promise<MealDBMeal[]> {
  * @returns An array of ingredients that includes a name and a measure
  *          with both the amount and units e.g "1 tablespoon"
  *          Or an empty array if no ingredients are found
+ * @throws An error if the meal argument is null or undefined
+ *
+ * Iterates all 20 ingredient slots because TheMealDB populates them
+ * sparsely — a blank NAME marks an unused slot and is skipped, but a
+ * present name with an empty MEASURE is still a real ingredient (e.g.
+ * "salt to taste") and is kept with measure defaulted to "".
  */
 export function extractIngredients(meal: MealDBMeal) : MealDBIngredient[] {
   const ingredients: MealDBIngredient[] = [];
-  
+
   if (meal == null) {
     throw new Error(`Meal could not be found`);
   }
@@ -39,12 +45,12 @@ export function extractIngredients(meal: MealDBMeal) : MealDBIngredient[] {
   for (let i = 1; i <= 20; i++) {
     const name = meal[`strIngredient${i}`];
     const measure = meal[`strMeasure${i}`];
-    if (!name || !measure) {
-      break;
+    if (!name || !name.trim()) {
+      continue;
     }
     ingredients.push({
       name: name.trim(),
-      measure: measure.trim()
+      measure: (measure ?? "").trim()
     })
   }
 
