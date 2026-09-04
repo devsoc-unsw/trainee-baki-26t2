@@ -4,13 +4,14 @@
  */
 
 import {
-  mealPrepMeals,
   mealSuggestionCatalogue,
   storePricing,
   stores,
 } from "@/lib/mockData";
 import { haversineKm, USER_LOCATION } from "@/lib/geo";
 import { formatIngredientName, normaliseName } from "@/lib/ingredients";
+import { extractIngredients, searchMealsByName } from "@/lib/mealdb";
+import type { MealDBMeal } from "@/lib/types";
 import type {
   DietaryTag,
   GroceryItem,
@@ -125,18 +126,113 @@ export async function getStoreComparison(
   });
 }
 
+/**
+ * Parses a TheMealDB measure string like "1 tablespoon", "200g",
+ * "1/2 cup", or "1 1/2 tsp" into a numeric quantity and free-text unit.
+ *
+ * @param measure - Raw measure string from TheMealDB (may be blank).
+ * @returns quantity: parsed number, or null when the string does not
+ *          start with a plain numeric amount. unit: everything after
+ *          the numeric part, trimmed; when no number is present, the
+ *          original trimmed text becomes the unit so it can still be
+ *          shown to the user (e.g. "to taste").
+ *
+ * Ambiguous inputs (ranges like "2-3", non-ASCII fractions, "a pinch")
+ * return quantity: null rather than guess — a wrong number would flow
+ * into unit conversion downstream and misprice a shopping list.
+ */
+export function parseMeasure(
+  measure: string,
+): { quantity: number | null; unit: string } {
+  const trimmed = measure.trim();
+  if (!trimmed) return { quantity: null, unit: "" };
+
+  const mixed = trimmed.match(/^(\d+)\s+(\d+)\/(\d+)(?:\s+(.+))?$/);
+  if (mixed) {
+    const [, whole, num, den, rest] = mixed;
+    const denominator = Number(den);
+    if (denominator > 0) {
+      return {
+        quantity: Number(whole) + Number(num) / denominator,
+        unit: (rest ?? "").trim(),
+      };
+    }
+  }
+
+  const frac = trimmed.match(/^(\d+)\/(\d+)(?:\s+(.+))?$/);
+  if (frac) {
+    const [, num, den, rest] = frac;
+    const denominator = Number(den);
+    if (denominator > 0) {
+      return {
+        quantity: Number(num) / denominator,
+        unit: (rest ?? "").trim(),
+      };
+    }
+  }
+
+  const scalar = trimmed.match(
+    /^(\d+(?:\.\d+)?)\s*([a-zA-Z][a-zA-Z\s.-]*)?$/,
+  );
+  if (scalar) {
+    return {
+      quantity: Number(scalar[1]),
+      unit: (scalar[2] ?? "").trim(),
+    };
+  }
+
+  return { quantity: null, unit: trimmed };
+}
+
+/**
+ * Maps a TheMealDB record onto our internal Meal shape.
+ *
+ * @param mdbMeal - Raw MealDB record.
+ * @returns A Meal safe to hand to a component. TheMealDB has no
+ *          dietary metadata, so dietaryTags/isQuickMeal/isHighProtein
+ *          default to empty/false rather than being fabricated.
+ *
+ * Meal.id is set to strMeal (the canonical name) so
+ * getIngredientsForMeal can round-trip through searchMealsByName,
+ * which is the only lookup helper exposed by mealdb.ts.
+ */
+const mealFromMealDB = (mdbMeal: MealDBMeal): Meal => ({
+  id: mdbMeal.strMeal,
+  name: mdbMeal.strMeal,
+  description: mdbMeal.strInstructions ?? "",
+  attribution: "TheMealDB",
+  imageUrl: mdbMeal.strMealThumb ?? null,
+  ingredients: extractIngredients(mdbMeal).map((ingredient) => {
+    const { quantity, unit } = parseMeasure(ingredient.measure);
+    return { name: ingredient.name, quantity, unit };
+  }),
+  dietaryTags: [],
+  isQuickMeal: false,
+  isHighProtein: false,
+});
+
+/**
+ * Looks up a meal by name from TheMealDB.
+ *
+ * @param name - User-entered meal name.
+ * @param restrictions - Unused. TheMealDB's search.php does not expose
+ *   dietary tags, so applying restrictions would require additional
+ *   lookups per candidate. The parameter is kept to preserve the
+ *   signature for callers that may later hit a backend that can filter.
+ * @returns The first matching meal mapped onto our Meal shape, or null
+ *          when TheMealDB returns no results.
+ * @throws When the network request to TheMealDB fails.
+ */
 export async function getMealByName(
   name: string,
   restrictions: DietaryTag[],
 ): Promise<Meal | null> {
-  await delay();
   void restrictions;
 
-  const meal = mealPrepMeals.find(
-    (candidate) => normaliseName(candidate.name) === normaliseName(name),
-  );
+  const matches = await searchMealsByName(name);
+  if (matches.length === 0) return null;
 
-  return meal ? structuredClone(meal) : null;
+  return mealFromMealDB(matches[0]);
 }
 
 export async function getMealsFromIngredients(
@@ -164,14 +260,29 @@ export async function getMealsFromIngredients(
     .map(({ meal }) => structuredClone(meal));
 }
 
+/**
+ * Fetches the ingredient list for a previously-selected meal.
+ *
+ * @param mealId - The Meal.id returned by getMealByName. Because
+ *   TheMealDB is only searchable by name via searchMealsByName, we
+ *   stored the meal's canonical name in Meal.id so this lookup can
+ *   round-trip. Matched case-insensitively to survive normalisation.
+ * @returns The meal's ingredients as {name, quantity, unit}. Quantity
+ *          is null when the raw measure string is not a plain number.
+ *          Empty array when no exact-name match is found.
+ * @throws When the network request to TheMealDB fails.
+ */
 export async function getIngredientsForMeal(
   mealId: string,
 ): Promise<Ingredient[]> {
-  await delay();
-
-  const meal = [...mealPrepMeals, ...mealSuggestionCatalogue].find(
-    (candidate) => candidate.id === mealId,
+  const matches = await searchMealsByName(mealId);
+  const meal = matches.find(
+    (candidate) => normaliseName(candidate.strMeal) === normaliseName(mealId),
   );
+  if (!meal) return [];
 
-  return meal ? structuredClone(meal.ingredients) : [];
+  return extractIngredients(meal).map((ingredient) => {
+    const { quantity, unit } = parseMeasure(ingredient.measure);
+    return { name: ingredient.name, quantity, unit };
+  });
 }
