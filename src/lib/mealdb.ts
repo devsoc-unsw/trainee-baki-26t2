@@ -1,4 +1,11 @@
-import type { MealDBMeal, MealDBIngredient, MealDBSearchResponse } from "@/lib/types";
+import type {
+  MealDBFilterResponse,
+  MealDBIngredient,
+  MealDBLookupResponse,
+  MealDBMeal,
+  MealDBMealSummary,
+  MealDBSearchResponse,
+} from "@/lib/types";
 
 // TheMealDB API route
 const BASE_URL = "https://www.themealdb.com/api/json/v1/1";
@@ -55,4 +62,49 @@ export function extractIngredients(meal: MealDBMeal) : MealDBIngredient[] {
   }
 
   return ingredients;
+}
+
+/**
+ *
+ * @param ingredient - Ingredient name to filter meals by, e.g. "chicken".
+ * @returns A promise resolving to meal summaries (id, name, thumbnail).
+ *          filter.php intentionally omits ingredient lists — callers
+ *          that need full details must follow up with lookupMealById.
+ *          Empty array when TheMealDB has no matches.
+ * @throws An error if the network request fails (an empty result set
+ *         is not treated as an error).
+ */
+export async function filterMealsByIngredient(
+  ingredient: string,
+): Promise<MealDBMealSummary[]> {
+  const res = await fetch(
+    `${BASE_URL}/filter.php?i=${encodeURIComponent(ingredient)}`,
+  );
+
+  if (!res.ok) {
+    throw new Error(`TheMealDB request failed: ${res.status}`);
+  }
+
+  const data: MealDBFilterResponse = await res.json();
+  return data.meals ?? [];
+}
+
+/**
+ *
+ * @param id - TheMealDB numeric id (idMeal), e.g. "52772".
+ * @returns A promise resolving to the full meal record, or null when
+ *          no meal exists for the given id.
+ * @throws An error if the network request fails.
+ */
+export async function lookupMealById(id: string): Promise<MealDBMeal | null> {
+  const res = await fetch(
+    `${BASE_URL}/lookup.php?i=${encodeURIComponent(id)}`,
+  );
+
+  if (!res.ok) {
+    throw new Error(`TheMealDB request failed: ${res.status}`);
+  }
+
+  const data: MealDBLookupResponse = await res.json();
+  return data.meals?.[0] ?? null;
 }

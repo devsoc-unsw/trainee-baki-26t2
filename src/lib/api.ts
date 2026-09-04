@@ -3,16 +3,17 @@
  * API is ready; callers should continue using the same shared domain types.
  */
 
-import {
-  mealSuggestionCatalogue,
-  storePricing,
-  stores,
-} from "@/lib/mockData";
+import { storePricing, stores } from "@/lib/mockData";
 import { haversineKm, USER_LOCATION } from "@/lib/geo";
 import { formatIngredientName, normaliseName } from "@/lib/ingredients";
-import { extractIngredients, searchMealsByName } from "@/lib/mealdb";
+import {
+  extractIngredients,
+  filterMealsByIngredient,
+  lookupMealById,
+  searchMealsByName,
+} from "@/lib/mealdb";
 import { deriveMealTags } from "@/lib/mealHeuristics";
-import type { MealDBMeal } from "@/lib/types";
+import type { MealDBMeal, MealDBMealSummary } from "@/lib/types";
 import type {
   DietaryTag,
   GroceryItem,
@@ -271,29 +272,73 @@ export async function getMealByName(
   return null;
 }
 
+// Maximum full-detail lookups per leftovers query. filter.php returns
+// only id/name/thumbnail, so ranked candidates need per-meal round
+// trips to reveal ingredients and heuristic tags. Capping bounds the
+// request count so a user with many pantry ingredients doesn't fan
+// out into dozens of parallel calls against TheMealDB.
+const LEFTOVERS_MAX_LOOKUPS = 8;
+
+/**
+ * Suggests meals that use ingredients the user already has, using
+ * TheMealDB's filter + lookup endpoints.
+ *
+ * @param ingredients - User pantry ingredients (free text).
+ * @param filters - Post-ranking filters applied against heuristic
+ *   tags derived per meal.
+ * @returns Meals ranked by how many pantry ingredients they use,
+ *          capped at LEFTOVERS_MAX_LOOKUPS full-detail lookups and
+ *          then filtered by quickMeal / highProtein.
+ * @throws When any TheMealDB request fails.
+ *
+ * Strategy: filter.php is called once per pantry ingredient in
+ * parallel; results are unioned and ranked by hit count so a meal
+ * appearing under multiple ingredients rises to the top. Only the
+ * top LEFTOVERS_MAX_LOOKUPS candidates get full lookups (also in
+ * parallel), because filter.php does not return ingredients or the
+ * data needed by the heuristic tags.
+ */
 export async function getMealsFromIngredients(
   ingredients: string[],
   filters: { quickMeal: boolean; highProtein: boolean },
 ): Promise<Meal[]> {
-  await delay();
+  if (ingredients.length === 0) return [];
 
-  const ingredientSet = new Set(ingredients.map(normaliseName));
+  const shortlists = await Promise.all(
+    ingredients.map((ingredient) => filterMealsByIngredient(ingredient)),
+  );
 
-  return mealSuggestionCatalogue
-    .map((meal) => ({
-      meal,
-      matchCount: meal.ingredients.filter((ingredient) =>
-        ingredientSet.has(normaliseName(ingredient.name)),
-      ).length,
-    }))
-    .filter(({ meal, matchCount }) => {
-      if (matchCount === 0) return false;
+  const counts = new Map<
+    string,
+    { summary: MealDBMealSummary; count: number }
+  >();
+  for (const shortlist of shortlists) {
+    for (const summary of shortlist) {
+      const existing = counts.get(summary.idMeal);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        counts.set(summary.idMeal, { summary, count: 1 });
+      }
+    }
+  }
+
+  const ranked = [...counts.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, LEFTOVERS_MAX_LOOKUPS);
+
+  const detailed = await Promise.all(
+    ranked.map(({ summary }) => lookupMealById(summary.idMeal)),
+  );
+
+  return detailed
+    .filter((mdbMeal): mdbMeal is MealDBMeal => mdbMeal !== null)
+    .map(mealFromMealDB)
+    .filter((meal) => {
       if (filters.quickMeal && !meal.isQuickMeal) return false;
       if (filters.highProtein && !meal.isHighProtein) return false;
       return true;
-    })
-    .sort((first, second) => second.matchCount - first.matchCount)
-    .map(({ meal }) => structuredClone(meal));
+    });
 }
 
 /**
