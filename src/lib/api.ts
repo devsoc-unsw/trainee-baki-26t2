@@ -9,6 +9,7 @@ import {
   storePricing,
   stores,
 } from "@/lib/mockData";
+import { haversineKm, USER_LOCATION } from "@/lib/geo";
 import { formatIngredientName, normaliseName } from "@/lib/ingredients";
 import type {
   DietaryTag,
@@ -81,6 +82,15 @@ export async function getStoreComparison(
   // closest is Woolworths. Real ranking belongs in the backend.
   return stores.map((store) => {
     const catalogue = storePricing[store.id] ?? [];
+    const distanceKm =
+      store.latitude !== null && store.longitude !== null
+        ? Math.round(
+            haversineKm(USER_LOCATION, {
+              latitude: store.latitude,
+              longitude: store.longitude,
+            }) * 10,
+          ) / 10
+        : null;
     const products = items.map((item) => {
       const priceEntry = catalogue.find(
         (product) =>
@@ -102,7 +112,7 @@ export async function getStoreComparison(
     });
 
     return {
-      store: { ...store },
+      store: { ...store, distanceKm },
       products,
       total: products.reduce(
         (sum, product) => sum + (product.available ? product.lineTotal : 0),

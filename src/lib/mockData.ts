@@ -18,15 +18,15 @@ export const stores: Store[] = [
     id: "coles",
     name: "Coles",
     distanceKm: null,
-    latitude: null,
-    longitude: null,
+    latitude: -33.8796,
+    longitude: 151.2053,
   },
   {
     id: "woolworths",
     name: "Woolworths",
     distanceKm: null,
-    latitude: null,
-    longitude: null,
+    latitude: -33.8659,
+    longitude: 151.2073,
   },
 ];
 
