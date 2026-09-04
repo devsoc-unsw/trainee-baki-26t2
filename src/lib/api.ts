@@ -11,6 +11,7 @@ import {
 import { haversineKm, USER_LOCATION } from "@/lib/geo";
 import { formatIngredientName, normaliseName } from "@/lib/ingredients";
 import { extractIngredients, searchMealsByName } from "@/lib/mealdb";
+import { deriveMealTags } from "@/lib/mealHeuristics";
 import type { MealDBMeal } from "@/lib/types";
 import type {
   DietaryTag,
@@ -188,28 +189,37 @@ export function parseMeasure(
  * Maps a TheMealDB record onto our internal Meal shape.
  *
  * @param mdbMeal - Raw MealDB record.
- * @returns A Meal safe to hand to a component. TheMealDB has no
- *          dietary metadata, so dietaryTags/isQuickMeal/isHighProtein
- *          default to empty/false rather than being fabricated.
+ * @returns A Meal safe to hand to a component. dietaryTags,
+ *          isQuickMeal, and isHighProtein come from the heuristics in
+ *          mealHeuristics.ts since TheMealDB does not provide them.
  *
  * Meal.id is set to strMeal (the canonical name) so
  * getIngredientsForMeal can round-trip through searchMealsByName,
  * which is the only lookup helper exposed by mealdb.ts.
  */
-const mealFromMealDB = (mdbMeal: MealDBMeal): Meal => ({
-  id: mdbMeal.strMeal,
-  name: mdbMeal.strMeal,
-  description: mdbMeal.strInstructions ?? "",
-  attribution: "TheMealDB",
-  imageUrl: mdbMeal.strMealThumb ?? null,
-  ingredients: extractIngredients(mdbMeal).map((ingredient) => {
-    const { quantity, unit } = parseMeasure(ingredient.measure);
-    return { name: ingredient.name, quantity, unit };
-  }),
-  dietaryTags: [],
-  isQuickMeal: false,
-  isHighProtein: false,
-});
+const mealFromMealDB = (mdbMeal: MealDBMeal): Meal => {
+  const rawIngredients = extractIngredients(mdbMeal);
+  const { dietaryTags, isQuickMeal, isHighProtein } = deriveMealTags(
+    rawIngredients,
+    mdbMeal.strCategory,
+    mdbMeal.strInstructions,
+  );
+
+  return {
+    id: mdbMeal.strMeal,
+    name: mdbMeal.strMeal,
+    description: mdbMeal.strInstructions ?? "",
+    attribution: "TheMealDB",
+    imageUrl: mdbMeal.strMealThumb ?? null,
+    ingredients: rawIngredients.map((ingredient) => {
+      const { quantity, unit } = parseMeasure(ingredient.measure);
+      return { name: ingredient.name, quantity, unit };
+    }),
+    dietaryTags,
+    isQuickMeal,
+    isHighProtein,
+  };
+};
 
 /**
  * Looks up a meal by name from TheMealDB.
