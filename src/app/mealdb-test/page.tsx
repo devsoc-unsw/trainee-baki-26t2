@@ -1,5 +1,5 @@
 import { searchMealsByName, extractIngredients } from "@/lib/mealdb"
-import { MealDBMeal } from "@/lib/types"
+import { MealDBMeal } from "@/types/mealdb"
 
 export default async function MealDBTest() {
   let results: MealDBMeal[] = [];
