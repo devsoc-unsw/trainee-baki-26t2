@@ -1,4 +1,4 @@
-import type { MealDBIngredient } from "@/lib/types";
+import type { MealDBIngredient } from "@/types/mealdb";
 import type { DietaryTag } from "@/types";
 
 /**

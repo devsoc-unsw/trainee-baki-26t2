@@ -5,7 +5,7 @@ import type {
   MealDBMeal,
   MealDBMealSummary,
   MealDBSearchResponse,
-} from "@/lib/types";
+} from "@/types/mealdb";
 
 // TheMealDB API route
 const BASE_URL = "https://www.themealdb.com/api/json/v1/1";

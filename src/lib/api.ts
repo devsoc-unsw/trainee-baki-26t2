@@ -13,7 +13,7 @@ import {
   searchMealsByName,
 } from "@/lib/mealdb";
 import { deriveMealTags } from "@/lib/mealHeuristics";
-import type { MealDBMeal, MealDBMealSummary } from "@/lib/types";
+import type { MealDBMeal, MealDBMealSummary } from "@/types/mealdb";
 import type {
   DietaryTag,
   GroceryItem,
