@@ -1,11 +1,11 @@
 /**
- * Backend integration point. Replace only these function bodies when the real
- * API is ready; callers should continue using the same shared domain types.
+ * Client-safe API layer around TheMealDB. Store comparison lives in
+ * src/server/pricing.ts (server-only) and is reached via the
+ * /api/compare route handler, so nothing in this file transitively
+ * pulls server-only modules into a client bundle.
  */
 
-import { storePricing, stores } from "@/lib/mockData";
-import { haversineKm, USER_LOCATION } from "@/lib/geo";
-import { formatIngredientName, normaliseName } from "@/lib/ingredients";
+import { normaliseName } from "@/lib/ingredients";
 import {
   extractIngredients,
   filterMealsByIngredient,
@@ -16,116 +16,36 @@ import { deriveMealTags } from "@/lib/mealHeuristics";
 import type { MealDBMeal, MealDBMealSummary } from "@/types/mealdb";
 import type {
   DietaryTag,
-  GroceryItem,
   Ingredient,
   Meal,
   StoreOffer,
-  StoreProduct,
 } from "@/types";
 
-const MOCK_DELAY_MS = 300;
-
-const delay = () =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, MOCK_DELAY_MS);
-  });
-
-const normaliseAmount = (quantity: number, unit: string) => {
-  const normalisedUnit = unit.trim().toLowerCase();
-
-  if (normalisedUnit === "kg") {
-    return { quantity: quantity * 1000, unit: "g" };
-  }
-  if (normalisedUnit === "l") {
-    return { quantity: quantity * 1000, unit: "ml" };
-  }
-
-  return { quantity, unit: normalisedUnit };
-};
-
-const getPacksNeeded = (
-  item: GroceryItem,
-  priceEntry: StoreProduct,
-) => {
-  const requestedAmount = normaliseAmount(item.quantity, item.unit);
-  const packageAmount = normaliseAmount(
-    priceEntry.packageSize,
-    priceEntry.packageUnit,
-  );
-
-  // Mismatched units are a data-quality issue, so do not calculate a price.
-  if (
-    requestedAmount.unit !== packageAmount.unit ||
-    packageAmount.quantity <= 0
-  ) {
-    return null;
-  }
-
-  return Math.ceil(requestedAmount.quantity / packageAmount.quantity);
-};
-
-const createUnavailableProduct = (item: GroceryItem): StoreProduct => ({
-  listItemName: normaliseName(item.name),
-  displayName: formatIngredientName(item.name),
-  packageSize: 0,
-  packageUnit: item.unit,
-  packagePrice: 0,
-  packsNeeded: 0,
-  lineTotal: 0,
-  imageUrl: null,
-  available: false,
-});
-
+/**
+ * Requests a per-store price comparison from the /api/compare route
+ * handler. Client-safe wrapper around the server-only pricing layer.
+ *
+ * @param items - Grocery items to price.
+ * @returns One StoreOffer per configured store. Empty items array
+ *   still returns a response (with empty product lines per store).
+ * @throws When the network request fails or the server responds with
+ *   a non-2xx status. The compare page catches this to render an
+ *   error state; other callers can inspect `error.code` for retry
+ *   decisions once the route contract expands.
+ */
 export async function getStoreComparison(
-  items: GroceryItem[],
+  items: import("@/types").GroceryItem[],
 ): Promise<StoreOffer[]> {
-  await delay();
-
-  // The mock preserves the current fixed mapping: cheapest is Coles and
-  // closest is Woolworths. Real ranking belongs in the backend.
-  return stores.map((store) => {
-    const catalogue = storePricing[store.id] ?? [];
-    const distanceKm =
-      store.latitude !== null && store.longitude !== null
-        ? Math.round(
-            haversineKm(USER_LOCATION, {
-              latitude: store.latitude,
-              longitude: store.longitude,
-            }) * 10,
-          ) / 10
-        : null;
-    const products = items.map((item) => {
-      const priceEntry = catalogue.find(
-        (product) =>
-          normaliseName(product.listItemName) === normaliseName(item.name),
-      );
-
-      if (!priceEntry) return createUnavailableProduct(item);
-
-      const packsNeeded = getPacksNeeded(item, priceEntry);
-      if (packsNeeded === null) return createUnavailableProduct(item);
-
-      return {
-        ...priceEntry,
-        listItemName: normaliseName(item.name),
-        packsNeeded,
-        lineTotal: priceEntry.packagePrice * packsNeeded,
-        available: true,
-      };
-    });
-
-    return {
-      store: { ...store, distanceKm },
-      products,
-      total: products.reduce(
-        (sum, product) => sum + (product.available ? product.lineTotal : 0),
-        0,
-      ),
-      unavailableItems: products
-        .filter((product) => !product.available)
-        .map((product) => product.listItemName),
-    };
+  const res = await fetch("/api/compare", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items }),
   });
+  if (!res.ok) {
+    throw new Error(`compare request failed: ${res.status}`);
+  }
+  const body = (await res.json()) as { offers: StoreOffer[] };
+  return body.offers;
 }
 
 /**

@@ -9,6 +9,7 @@ import {
 import type { ReactNode } from "react";
 import { normaliseName } from "@/lib/ingredients";
 import { startingGroceryItems } from "@/lib/mockData";
+import { convert } from "@/lib/units";
 import type { GroceryItem, Ingredient } from "@/types";
 
 type ShoppingListContextValue = {
@@ -49,7 +50,31 @@ const parseNewItem = (value: string) => {
   };
 };
 
-const mergeShoppingItems = (
+/**
+ * Merges new ingredients into an existing shopping list, matching by
+ * normalised name and reconciling units via the shared converter.
+ *
+ * @param currentItems - The list as it stands.
+ * @param newItems - Ingredients being added (e.g. from a meal's
+ *   ingredient list, or a single item the user typed in). Entries
+ *   with quantity === null are dropped: they represent "to taste"
+ *   style measures that cannot be reasoned about numerically.
+ * @param getNextId - Called once per NEW line entry to allocate a
+ *   fresh id. Not called for merges into an existing entry.
+ * @returns A new array (never mutates `currentItems`) with the
+ *   merged shopping list.
+ *
+ * Merging rule: if the new item's unit is convertible to the
+ * existing item's unit (potentially via density when the ingredient
+ * name is known), the converted quantity is added and the existing
+ * unit is preserved so the display stays stable. If conversion is
+ * impossible (e.g. "2 cloves" being added to "500 g garlic"), the
+ * item is added as a separate line entry rather than blindly summing
+ * numbers across incompatible units — the latter is the bug this
+ * function used to have, where 200 g butter + 2 cups butter silently
+ * became "202 g butter".
+ */
+export const mergeShoppingItems = (
   currentItems: GroceryItem[],
   newItems: Ingredient[],
   getNextId: () => number,
@@ -66,11 +91,22 @@ const mergeShoppingItems = (
 
     if (existingIndex >= 0) {
       const existingItem = mergedItems[existingIndex];
-      mergedItems[existingIndex] = {
-        ...existingItem,
-        quantity: existingItem.quantity + newItem.quantity,
-      };
-      return;
+      const addedInExistingUnit = convert(
+        newItem.quantity,
+        newItem.unit,
+        existingItem.unit,
+        newItem.name,
+      );
+      if (addedInExistingUnit !== null) {
+        mergedItems[existingIndex] = {
+          ...existingItem,
+          quantity: existingItem.quantity + addedInExistingUnit,
+        };
+        return;
+      }
+      // Fall through: units are incompatible (count vs weight, or an
+      // unknown unit on either side). Keep the addition as its own
+      // line so the total stays truthful.
     }
 
     mergedItems.push({
