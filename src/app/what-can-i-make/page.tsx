@@ -41,6 +41,7 @@ export default function WhatCanIMakePage() {
   const [errorRequestKey, setErrorRequestKey] = useState<string | null>(
     null,
   );
+  const [expandedMealId, setExpandedMealId] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -226,11 +227,19 @@ export default function WhatCanIMakePage() {
                     key={meal.id}
                     className="flex flex-col gap-4 p-4 sm:flex-row"
                   >
-                    <Card
-                      variant="placeholder"
-                      className="h-45 w-full shrink-0 sm:w-50"
-                      aria-hidden="true"
-                    />
+                    {meal.imageUrl ? (
+                      <img
+                        src={meal.imageUrl}
+                        alt={meal.name}
+                        className="h-45 w-full shrink-0 rounded-xl object-cover sm:w-50"
+                      />
+                    ) : (
+                      <Card
+                        variant="placeholder"
+                        className="h-45 w-full shrink-0 sm:w-50"
+                        aria-hidden="true"
+                      />
+                    )}
                     <div className="flex min-w-0 flex-1 flex-col">
                       <h3 className="font-special-elite text-3xl font-bold text-black">
                         {meal.name}
@@ -240,10 +249,31 @@ export default function WhatCanIMakePage() {
                       </p>
                       <Button
                         variant="primary"
+                        onClick={() =>
+                          setExpandedMealId((currentId) =>
+                            currentId === meal.id ? null : meal.id,
+                          )
+                        }
                         className="mt-6 self-end px-6 py-2.5 text-xl sm:mt-auto"
                       >
-                        View Recipe
+                        {expandedMealId === meal.id ? "Hide Recipe" : "View Recipe"}
                       </Button>
+                      {expandedMealId === meal.id && (
+                        <div className="mt-5 border-t border-[#FFC518] pt-4">
+                          <h4 className="font-island-moments text-3xl text-black">
+                            Steps
+                          </h4>
+                          <ol className="mt-2 list-decimal space-y-2 pl-5 font-indie-flower text-lg text-black">
+                            {meal.description
+                              .split(/\r?\n|(?<=[.!?])\s+(?=[A-Z0-9])/)
+                              .map((step) => step.trim())
+                              .filter(Boolean)
+                              .map((step, index) => (
+                                <li key={`${meal.id}-step-${index}`}>{step}</li>
+                              ))}
+                          </ol>
+                        </div>
+                      )}
                     </div>
                   </Card>
                 ))}
