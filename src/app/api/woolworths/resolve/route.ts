@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { normaliseName } from "@/lib/ingredients";
 import type { Ingredient } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 type WoolworthsProduct = {
   search_term?: string;
   name?: string;
@@ -51,14 +53,24 @@ export async function POST(request: Request) {
     }
 
     const products = await loadProducts();
-    const productBySearchTerm = new Map<string, WoolworthsProduct>();
+    const productsBySearchTerm = new Map<string, WoolworthsProduct[]>();
 
     for (const product of products) {
       if (!product.search_term || !product.name) continue;
       const key = normaliseName(product.search_term);
-      if (!productBySearchTerm.has(key)) {
-        productBySearchTerm.set(key, product);
-      }
+      const matchingProducts = productsBySearchTerm.get(key) ?? [];
+      matchingProducts.push(product);
+      productsBySearchTerm.set(key, matchingProducts);
+    }
+
+    const productBySearchTerm = new Map<string, WoolworthsProduct>();
+    for (const [key, matchingProducts] of productsBySearchTerm) {
+      matchingProducts.sort((first, second) => {
+        const firstPrice = first.price ?? Infinity;
+        const secondPrice = second.price ?? Infinity;
+        return firstPrice - secondPrice;
+      });
+      productBySearchTerm.set(key, matchingProducts[0]);
     }
 
     const resolvedIngredients = (ingredients as Ingredient[]).map(

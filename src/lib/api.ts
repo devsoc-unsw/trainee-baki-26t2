@@ -133,6 +133,7 @@ const createUnavailableProduct = (
   packsNeeded: 0,
   lineTotal: 0,
   imageUrl: resolvedProduct?.productImageUrl ?? null,
+  productUrl: resolvedProduct?.productUrl ?? null,
   available: false,
 });
 
@@ -166,6 +167,7 @@ const createResolvedProduct = (
     packsNeeded,
     lineTotal: packagePrice * packsNeeded,
     imageUrl: resolvedProduct.productImageUrl ?? null,
+    productUrl: resolvedProduct.productUrl ?? null,
     available: true,
   };
 };
