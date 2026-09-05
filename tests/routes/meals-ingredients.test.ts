@@ -21,7 +21,7 @@ describe("GET /api/meals/[id]/ingredients", () => {
       jsonResponse({
         meals: [
           buildMealDBMeal({
-            strMeal: "Carrot Cake",
+            overrides: { strMeal: "Carrot Cake" },
             ingredients: [
               { name: "carrot", measure: "200g" },
               { name: "flour", measure: "1 cup" },
@@ -43,7 +43,10 @@ describe("GET /api/meals/[id]/ingredients", () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
       jsonResponse({
         meals: [
-          buildMealDBMeal({ strMeal: "Beef Stew", ingredients: [] }),
+          buildMealDBMeal({
+            overrides: { strMeal: "Beef Stew" },
+            ingredients: [],
+          }),
         ],
       }),
     );

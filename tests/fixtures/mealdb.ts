@@ -1,16 +1,24 @@
 import type { MealDBMeal, MealDBMealSummary } from "@/types/mealdb";
 
+export interface BuildMealDBMealOptions {
+  overrides?: Partial<MealDBMeal>;
+  ingredients?: Array<{ name: string; measure: string }>;
+}
+
 /**
- * Builds a minimal-but-realistic TheMealDB meal record. Callers can
- * override any field; ingredient/measure pairs are packed into the
- * numbered strIngredient1..20 / strMeasure1..20 slots the API uses.
+ * Builds a minimal-but-realistic TheMealDB meal record. Ingredient
+ * and measure pairs are packed into the numbered strIngredient1..20
+ * / strMeasure1..20 slots the API uses.
+ *
+ * `overrides` and `ingredients` are separate arguments (rather than
+ * a single Partial<MealDBMeal>) because MealDBMeal has an index
+ * signature of `string | undefined`, which conflicts with typing an
+ * `ingredients` array of objects.
  */
 export const buildMealDBMeal = (
-  overrides: Partial<MealDBMeal> & {
-    ingredients?: Array<{ name: string; measure: string }>;
-  } = {},
+  options: BuildMealDBMealOptions = {},
 ): MealDBMeal => {
-  const { ingredients = [], ...rest } = overrides;
+  const { overrides = {}, ingredients = [] } = options;
   const base: MealDBMeal = {
     idMeal: "52772",
     strMeal: "Carrot Cake",
@@ -26,7 +34,7 @@ export const buildMealDBMeal = (
     base[`strIngredient${index + 1}`] = ing.name;
     base[`strMeasure${index + 1}`] = ing.measure;
   });
-  return { ...base, ...rest };
+  return { ...base, ...overrides };
 };
 
 export const buildMealSummary = (

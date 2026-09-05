@@ -47,8 +47,7 @@ describe("GET /api/meals/by-ingredients", () => {
         body: {
           meals: [
             buildMealDBMeal({
-              idMeal: "1",
-              strMeal: "Roast Chicken",
+              overrides: { idMeal: "1", strMeal: "Roast Chicken" },
               ingredients: [{ name: "chicken", measure: "1 kg" }],
             }),
           ],

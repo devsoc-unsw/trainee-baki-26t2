@@ -19,7 +19,7 @@ describe("GET /api/meals/search", () => {
       jsonResponse({
         meals: [
           buildMealDBMeal({
-            strMeal: "Carrot Cake",
+            overrides: { strMeal: "Carrot Cake" },
             ingredients: [{ name: "carrot", measure: "200g" }],
           }),
         ],
@@ -39,7 +39,7 @@ describe("GET /api/meals/search", () => {
       jsonResponse({
         meals: [
           buildMealDBMeal({
-            strMeal: "Beef Stew",
+            overrides: { strMeal: "Beef Stew" },
             ingredients: [{ name: "beef", measure: "500g" }],
           }),
         ],
