@@ -4,7 +4,7 @@ export default function RecipesPage() {
       <div className="text-center">
         <h1 className="text-3xl font-semibold">Let Him Cook</h1>
         <p className="mt-2 text-gray-500">
-          We're gonna have the recipe page here
+          We&apos;re gonna have the recipe page here
         </p>
       </div>
     </main>
