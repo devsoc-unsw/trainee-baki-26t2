@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseMeasure } from "@/lib/api";
+import { normaliseAmount, parseMeasure } from "@/lib/api";
 
 describe("parseMeasure", () => {
   it("parses a simple integer with unit", () => {
@@ -60,6 +60,45 @@ describe("parseMeasure", () => {
   });
 
   it("handles a bare number with no unit", () => {
-    expect(parseMeasure("3")).toEqual({ quantity: 3, unit: "" });
+    expect(parseMeasure("3")).toEqual({ quantity: 3, unit: "x" });
+  });
+
+  it("removes preparation words from count measurements", () => {
+    expect(parseMeasure("2 chopped onions")).toEqual({
+      quantity: 2,
+      unit: "x",
+    });
+  });
+});
+
+describe("normaliseAmount", () => {
+  it("converts an Australian half cup to millilitres", () => {
+    expect(normaliseAmount(0.5, "cup")).toEqual({
+      quantity: 125,
+      unit: "ml",
+    });
+  });
+
+  it("converts tablespoons and litres to millilitres", () => {
+    expect(normaliseAmount(2, "tablespoons")).toEqual({
+      quantity: 40,
+      unit: "ml",
+    });
+    expect(normaliseAmount(1, "l")).toEqual({
+      quantity: 1000,
+      unit: "ml",
+    });
+  });
+
+  it("treats onions and blank measures as countable items", () => {
+    expect(normaliseAmount(2, "")).toEqual({ quantity: 2, unit: "x" });
+    expect(normaliseAmount(2, "large onions")).toEqual({
+      quantity: 2,
+      unit: "x",
+    });
+    expect(normaliseAmount(2, "chopped onions")).toEqual({
+      quantity: 2,
+      unit: "x",
+    });
   });
 });

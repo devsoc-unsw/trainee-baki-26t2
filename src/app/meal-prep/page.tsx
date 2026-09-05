@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Header from "../../../components/Header";
 import Button from "../../../components/ui/Button";
@@ -14,9 +15,32 @@ import { normaliseName } from "../../lib/ingredients";
 import { dietaryOptions } from "../../lib/mockData";
 import type { DietaryTag, Meal } from "../../types";
 
+const MEAL_PREP_STATE_KEY = "let-him-cook:meal-prep-state";
+
+export const getInstructionSteps = (instructions: string) => {
+  const stepMarker = /Step\s+\d+\s*[:.)-]?\s*/gi;
+  const markers = [...instructions.matchAll(stepMarker)];
+
+  if (markers.length > 0) {
+    return markers
+      .map((marker, index) => {
+        const contentStart = marker.index! + marker[0].length;
+        const contentEnd = markers[index + 1]?.index ?? instructions.length;
+        return instructions.slice(contentStart, contentEnd).trim();
+      })
+      .filter(Boolean);
+  }
+
+  return instructions
+    .replace(/\r\n?/g, "\n")
+    .split(/\n+/)
+    .map((step) => step.trim())
+    .filter(Boolean);
+};
+
 export default function MealPrepPage() {
   const router = useRouter();
-  const { addItems } = useShoppingList();
+  const { addItems, clearItems } = useShoppingList();
   const [mealInput, setMealInput] = useState("");
   const [dietaryRestrictions, setDietaryRestrictions] = useState<
     DietaryTag[]
@@ -52,6 +76,48 @@ export default function MealPrepPage() {
           : !selectedMeal.dietaryTags.includes(tag);
       })
     : [];
+
+  const instructionSteps = selectedMeal
+    ? getInstructionSteps(selectedMeal.description)
+    : [];
+
+  useEffect(() => {
+    const savedState = sessionStorage.getItem(MEAL_PREP_STATE_KEY);
+    if (!savedState) return;
+
+    try {
+      const parsedState: unknown = JSON.parse(savedState);
+      if (typeof parsedState !== "object" || parsedState === null) return;
+
+      if (
+        "mealInput" in parsedState &&
+        typeof parsedState.mealInput === "string"
+      ) {
+        setMealInput(parsedState.mealInput);
+      }
+      if (
+        "dietaryRestrictions" in parsedState &&
+        Array.isArray(parsedState.dietaryRestrictions)
+      ) {
+        setDietaryRestrictions(
+          parsedState.dietaryRestrictions.filter(
+            (restriction): restriction is DietaryTag =>
+              typeof restriction === "string" &&
+              dietaryOptions.some(({ tag }) => tag === restriction),
+          ),
+        );
+      }
+    } catch {
+      sessionStorage.removeItem(MEAL_PREP_STATE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem(
+      MEAL_PREP_STATE_KEY,
+      JSON.stringify({ mealInput, dietaryRestrictions }),
+    );
+  }, [dietaryRestrictions, mealInput]);
 
   useEffect(() => {
     if (!normalisedInput) return;
@@ -90,8 +156,9 @@ export default function MealPrepPage() {
 
     try {
       const ingredients = await getIngredientsForMeal(selectedMeal.id);
+      clearItems();
       addItems(ingredients);
-      router.push("/");
+      router.push("/compare");
     } catch {
       setIngredientsError(true);
       setIsAddingIngredients(false);
@@ -102,8 +169,8 @@ export default function MealPrepPage() {
     <>
       <Header />
       <main className="bg-white p-6 sm:p-8">
-        <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-10 lg:grid-cols-2">
-          <section>
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-10 lg:grid-cols-5">
+          <section className="min-w-0 lg:col-span-2">
             <h1 className="font-island-moments text-3xl text-black">
               I want to prepare
             </h1>
@@ -149,7 +216,7 @@ export default function MealPrepPage() {
           </section>
 
           {normalisedInput && (
-            <section className="flex flex-col items-start">
+            <section className="flex min-w-0 w-full flex-col items-stretch lg:col-span-3">
               {status === "loading" ? (
                 <p className="font-indie-flower text-xl text-black">
                   Loading meal...
@@ -174,24 +241,39 @@ export default function MealPrepPage() {
                 <Card
                   as="article"
                   variant="panel"
-                  className="w-full max-w-85 p-4"
+                  className="w-full max-w-none self-stretch p-4"
                 >
-                  <Card
-                    variant="placeholder"
-                    className="h-45 w-full rounded-2xl!"
-                    aria-hidden="true"
-                  />
+                  {selectedMeal.imageUrl ? (
+                    <Image
+                      src={selectedMeal.imageUrl}
+                      alt={selectedMeal.name}
+                      width={900}
+                      height={500}
+                      className="h-64 w-full rounded-2xl object-cover sm:h-80"
+                    />
+                  ) : (
+                    <Card
+                      variant="placeholder"
+                      className="h-45 w-full rounded-2xl!"
+                      aria-hidden="true"
+                    />
+                  )}
                   <Card
                     variant="content"
-                    className="mt-4 p-4 text-center text-black"
+                    className="w-full mt-4 p-4 text-black"
                   >
-                    <p className="font-indie-flower text-base">
-                      Description:
-                    </p>
-                    <p className="mt-2 font-indie-flower text-xl">
-                      {selectedMeal.description}
-                    </p>
-                    <p className="mt-3 font-indie-flower text-xs">
+                    <h2 className="font-island-moments text-3xl">
+                      {selectedMeal.name}
+                    </h2>
+                    <h3 className="mt-4 font-indie-flower text-base">
+                      Steps
+                    </h3>
+                    <ol className="mt-2 list-decimal space-y-2 pl-5 font-indie-flower text-lg">
+                      {instructionSteps.map((step, index) => (
+                        <li key={`${step}-${index}`}>{step}</li>
+                      ))}
+                    </ol>
+                    <p className="mt-4 font-indie-flower text-xs">
                       {selectedMeal.attribution}
                     </p>
                   </Card>
@@ -206,7 +288,7 @@ export default function MealPrepPage() {
                   unsuitableRestrictions.length > 0 ||
                   isAddingIngredients
                 }
-                className="mt-4 px-6 py-3 text-xl"
+                className="mt-4 w-1/2 self-center px-6 py-3 text-xl"
               >
                 Get Ingredients List
               </Button>
