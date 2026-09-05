@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseMeasure } from "@/lib/api";
+import { parseMeasure } from "@/lib/parseMeasure";
 
 describe("parseMeasure", () => {
   it("parses a simple integer with unit", () => {
