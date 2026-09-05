@@ -35,6 +35,7 @@ export interface StoreProduct {
   packsNeeded: number;
   lineTotal: number;
   imageUrl: string | null;
+  productUrl?: string | null;
   available: boolean;
 }
 

@@ -35,7 +35,7 @@ const pickClosest = (offers: StoreOffer[]): StoreOffer | undefined =>
 export default function ComparePage() {
   const { items } = useShoppingList();
   const [activeView, setActiveView] =
-    useState<ComparisonView>("cheapest");
+    useState<ComparisonView>("closest");
   const requestKey = JSON.stringify(items);
   const [response, setResponse] = useState<{
     requestKey: string;
@@ -73,6 +73,25 @@ export default function ComparePage() {
         : "loading";
   const activeOffer =
     activeView === "cheapest" ? pickCheapest(offers) : pickClosest(offers);
+  const woolworthsOffer = offers.find(
+    (offer) => offer.store.id === "woolworths",
+  );
+
+  const addToCart = () => {
+    const productUrls = woolworthsOffer?.products
+      .map((product) => product.productUrl)
+      .filter((url): url is string => Boolean(url));
+
+    productUrls?.forEach((url, index) => {
+      const productWindow = window.open("about:blank", "_blank");
+      if (!productWindow) return;
+
+      productWindow.opener = null;
+      window.setTimeout(() => {
+        productWindow.location.replace(url);
+      }, index * 400);
+    });
+  };
 
   return (
     <>
@@ -144,14 +163,27 @@ export default function ComparePage() {
                         variant="content"
                         className="flex items-center gap-4 rounded-2xl! p-3"
                       >
-                        <Card
-                          variant="placeholder"
-                          className="h-16 w-28 shrink-0 sm:h-20 sm:w-40"
-                          aria-hidden="true"
-                        />
-                        <p className="font-indie-flower text-2xl text-black">
-                          {product.displayName}
-                        </p>
+                        {product.imageUrl ? (
+                          <img
+                            src={product.imageUrl}
+                            alt={product.displayName}
+                            className="h-16 w-28 shrink-0 object-contain sm:h-20 sm:w-40"
+                          />
+                        ) : (
+                          <Card
+                            variant="placeholder"
+                            className="h-16 w-28 shrink-0 sm:h-20 sm:w-40"
+                            aria-hidden="true"
+                          />
+                        )}
+                        <div className="min-w-0">
+                          <p className="break-words font-indie-flower text-2xl text-black">
+                            {product.displayName}
+                          </p>
+                          <p className="mt-1 font-indie-flower text-base text-black/70">
+                            Pack size: {product.packageSize} {product.packageUnit}
+                          </p>
+                        </div>
                       </Card>
 
                       <div className="mt-3 grid grid-cols-2 gap-3">
@@ -184,6 +216,7 @@ export default function ComparePage() {
                   </Card>
                   <Button
                     variant="primary"
+                    onClick={addToCart}
                     className="px-8 py-4 text-2xl"
                   >
                     Add to Cart

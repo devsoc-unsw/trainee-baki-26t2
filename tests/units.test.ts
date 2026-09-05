@@ -24,6 +24,48 @@ describe("lookupUnit", () => {
   it("treats an empty unit as count", () => {
     expect(lookupUnit("")).toEqual({ canonical: "count", factor: 1 });
   });
+
+  it("treats bare countable nouns as count", () => {
+    for (const noun of ["onion", "onions", "piece", "pieces", "whole"]) {
+      expect(lookupUnit(noun)).toEqual({ canonical: "count", factor: 1 });
+    }
+  });
+
+  it("treats descriptor + countable-noun combos as count", () => {
+    const combos = [
+      "large onion",
+      "small onions",
+      "red onions",
+      "large chopped onion",
+      "finely diced onions",
+      "small red chopped onions",
+      "roughly chopped cloves",
+    ];
+    for (const combo of combos) {
+      expect(lookupUnit(combo)).toEqual({ canonical: "count", factor: 1 });
+    }
+  });
+
+  it("does not turn a lone adjective into a unit", () => {
+    // "chopped" without a countable noun is not a measurement; the
+    // caller can decide whether to keep the raw text or mark the
+    // item unavailable.
+    expect(lookupUnit("chopped")).toBeUndefined();
+    expect(lookupUnit("large")).toBeUndefined();
+  });
+});
+
+describe("convert (descriptor units)", () => {
+  it("converts 3 large onions to a count via lookupUnit fallback", () => {
+    expect(convert(3, "large onions", "x")).toBe(3);
+  });
+
+  it("still refuses to cross count and weight for descriptor units", () => {
+    // "3 chopped onions" is a count, so packing it against a "500 g"
+    // package must return null — we don't know the weight of an
+    // arbitrary onion.
+    expect(convert(3, "chopped onions", "g", "onion")).toBeNull();
+  });
 });
 
 describe("getDensity", () => {

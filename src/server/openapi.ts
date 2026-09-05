@@ -342,6 +342,13 @@ export const openApiSpec = {
           packsNeeded: { type: "integer", minimum: 0 },
           lineTotal: { type: "number" },
           imageUrl: { oneOf: [{ type: "string" }, { type: "null" }] },
+          productUrl: {
+            oneOf: [{ type: "string" }, { type: "null" }],
+            description:
+              "Deep link to the product page on the source store's " +
+              "website (e.g. woolworths.com.au). Null for stores that " +
+              "do not carry a public URL, and for unavailable entries.",
+          },
           available: { type: "boolean" },
         },
       },

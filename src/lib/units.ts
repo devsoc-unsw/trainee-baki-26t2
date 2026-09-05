@@ -119,6 +119,12 @@ const UNIT_ALIASES: Record<string, UnitDefinition> = {
   cloves: { canonical: "count", factor: 1 },
   slice: { canonical: "count", factor: 1 },
   slices: { canonical: "count", factor: 1 },
+  onion: { canonical: "count", factor: 1 },
+  onions: { canonical: "count", factor: 1 },
+  whole: { canonical: "count", factor: 1 },
+  wholes: { canonical: "count", factor: 1 },
+  item: { canonical: "count", factor: 1 },
+  items: { canonical: "count", factor: 1 },
 
   // --- Small kitchen quantities approximated to weight/volume ---
   // A pinch is idiomatically ~1/16 tsp of a dry seasoning. At the density
@@ -218,6 +224,19 @@ const DENSITY_KEYS_LONGEST_FIRST = Object.keys(DENSITY_G_PER_ML).sort(
 );
 
 /**
+ * Recipe-hedge descriptors that TheMealDB emits inside the measure
+ * field ("large red onion", "3 chopped tomatoes"). None of these are
+ * measurements on their own; when they combine with an optional
+ * countable noun to form the entire unit string, the whole thing
+ * means "count of this item". Ported from Ricky's normaliseAmount in
+ * backend-mealdb — the vocabulary and regex shape are his; the
+ * placement here (routing through lookupUnit rather than a parallel
+ * helper) is so every caller of {@link convert} inherits the rule.
+ */
+const DESCRIPTOR_ONLY_UNIT_REGEX =
+  /^(?:(?:small|medium|large|red|brown|white|chopped|diced|sliced|minced|finely|roughly)\s+)+(?:onion|onions|piece|pieces|item|items|whole|wholes|clove|cloves|slice|slices)?$/;
+
+/**
  * Resolves an ingredient name to a density in g/ml.
  *
  * @param ingredientName - Free-text ingredient name from the recipe.
@@ -253,9 +272,21 @@ export function getDensity(ingredientName?: string): number {
  *   unit is not recognised at all. A recognised-but-unconvertible
  *   unit (like "to taste") returns a definition with
  *   `canonical: null`.
+ *
+ * Falls back to the descriptor-only regex so cooking-English hedges
+ * like "large red onion" or "chopped tomatoes" — which are not units
+ * per se but ARE how TheMealDB expresses a count — collapse to a
+ * count definition instead of returning undefined and killing the
+ * conversion.
  */
 export function lookupUnit(unit: string): UnitDefinition | undefined {
-  return UNIT_ALIASES[normaliseUnitKey(unit)];
+  const key = normaliseUnitKey(unit);
+  const direct = UNIT_ALIASES[key];
+  if (direct) return direct;
+  if (DESCRIPTOR_ONLY_UNIT_REGEX.test(key)) {
+    return { canonical: "count", factor: 1 };
+  }
+  return undefined;
 }
 
 /**

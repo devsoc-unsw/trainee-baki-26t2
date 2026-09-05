@@ -41,6 +41,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# ai 
+# ai
 
 .claude
+
+# python (scraper scripts)
+__pycache__/
+*.pyc
+

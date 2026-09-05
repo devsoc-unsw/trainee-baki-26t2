@@ -7,10 +7,6 @@ import type {
 } from "@/types";
 
 export const startingGroceryItems: GroceryItem[] = [
-  { id: 1, name: "eggs", quantity: 8, unit: "x" },
-  { id: 2, name: "butter", quantity: 150, unit: "g" },
-  { id: 3, name: "milk", quantity: 600, unit: "ml" },
-  { id: 4, name: "sugar", quantity: 200, unit: "g" },
 ];
 
 export const stores: Store[] = [

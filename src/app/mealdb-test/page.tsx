@@ -6,7 +6,7 @@ export default async function MealDBTest() {
   let fetchError = false;
 
   try {
-    results = await searchMealsByName("Spaghetti and Meatballs");
+    results = await searchMealsByName("potato");
   } catch (err) {
     console.error("Failed to fetch meal:", err);
     fetchError = true;

@@ -1,19 +1,20 @@
+import { USER_LOCATION } from "@/lib/geo";
 import { errorResponse } from "@/server/errors";
-import { stores } from "@/lib/mockData";
+import { getAllStores } from "@/server/catalogue";
 
 /**
  * GET /api/stores
  *
- * Returns the list of stores the app knows about, without pricing.
- * Distances are omitted here — clients that want a distance for the
- * user's current location should call /api/stores/compare, which
- * needs a shopping list anyway to be useful.
+ * Returns the list of stores the catalogue providers expose, with
+ * each store's distance from {@link USER_LOCATION} filled in.
+ * Pricing is not included here — clients that want prices should
+ * call /api/stores/compare with a shopping list.
  *
  * Response: { stores: Store[] }.
  */
-export async function GET(): Promise<Response> {
+export function GET(): Response {
   try {
-    return Response.json({ stores });
+    return Response.json({ stores: getAllStores(USER_LOCATION) });
   } catch (err) {
     return errorResponse(err);
   }

@@ -16,6 +16,7 @@ type ShoppingListContextValue = {
   items: GroceryItem[];
   addItem: (input: string) => GroceryItem | null;
   addItems: (items: Ingredient[]) => void;
+  clearItems: () => void;
   removeItem: (id: number) => void;
   updateQuantity: (id: number, quantity: number) => void;
   updateUnit: (id: number, unit: string) => void;
@@ -82,7 +83,8 @@ export const mergeShoppingItems = (
   const mergedItems = [...currentItems];
 
   newItems.forEach((newItem) => {
-    if (newItem.quantity === null) return;
+    const quantity = newItem.quantity;
+    if (quantity === null) return;
 
     const existingIndex = mergedItems.findIndex(
       (item) =>
@@ -92,7 +94,7 @@ export const mergeShoppingItems = (
     if (existingIndex >= 0) {
       const existingItem = mergedItems[existingIndex];
       const addedInExistingUnit = convert(
-        newItem.quantity,
+        quantity,
         newItem.unit,
         existingItem.unit,
         newItem.name,
@@ -111,9 +113,8 @@ export const mergeShoppingItems = (
 
     mergedItems.push({
       id: getNextId(),
-      name: newItem.name,
-      quantity: newItem.quantity,
-      unit: newItem.unit,
+      ...newItem,
+      quantity,
     });
   });
 
@@ -165,6 +166,11 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const clearItems = () => {
+    setItems([]);
+    nextId.current = 1;
+  };
+
   const removeItem = (id: number) => {
     setItems((currentItems) =>
       currentItems.filter((item) => item.id !== id),
@@ -195,6 +201,7 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
         items,
         addItem,
         addItems,
+        clearItems,
         removeItem,
         updateQuantity,
         updateUnit,
