@@ -40,7 +40,7 @@ export const getInstructionSteps = (instructions: string) => {
 
 export default function MealPrepPage() {
   const router = useRouter();
-  const { addItems } = useShoppingList();
+  const { addItems, clearItems } = useShoppingList();
   const [mealInput, setMealInput] = useState("");
   const [dietaryRestrictions, setDietaryRestrictions] = useState<
     DietaryTag[]
@@ -156,6 +156,7 @@ export default function MealPrepPage() {
 
     try {
       const ingredients = await getIngredientsForMeal(selectedMeal.id);
+      clearItems();
       addItems(ingredients);
       router.push("/compare");
     } catch {
