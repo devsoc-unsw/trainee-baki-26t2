@@ -9,24 +9,12 @@ export interface GroceryItem {
   name: string;
   quantity: number;
   unit: string;
-  productName?: string;
-  productImageUrl?: string | null;
-  productUrl?: string | null;
-  productPackageSize?: number;
-  productPackageUnit?: string;
-  productPrice?: number;
 }
 
 export interface Ingredient {
   name: string;
   quantity: number | null;
   unit: string;
-  productName?: string;
-  productImageUrl?: string | null;
-  productUrl?: string | null;
-  productPackageSize?: number;
-  productPackageUnit?: string;
-  productPrice?: number;
 }
 
 export interface Store {

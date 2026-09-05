@@ -1,9 +1,10 @@
 import "server-only";
 
-import { haversineKm, USER_LOCATION } from "@/lib/geo";
+import { USER_LOCATION } from "@/lib/geo";
+import type { GeoPoint } from "@/lib/geo";
 import { formatIngredientName, normaliseName } from "@/lib/ingredients";
-import { storePricing, stores } from "@/lib/mockData";
 import { convert } from "@/lib/units";
+import { getAllStores, getProductsForStore } from "@/server/catalogue";
 import type { GroceryItem, StoreOffer, StoreProduct } from "@/types";
 
 /**
@@ -50,6 +51,7 @@ const createUnavailableProduct = (item: GroceryItem): StoreProduct => ({
   packsNeeded: 0,
   lineTotal: 0,
   imageUrl: null,
+  productUrl: null,
   available: false,
 });
 
@@ -57,38 +59,36 @@ const createUnavailableProduct = (item: GroceryItem): StoreProduct => ({
  * Builds a per-store comparison for a shopping list.
  *
  * @param items - Grocery items the shopper wants to price.
- * @returns One {@link StoreOffer} per store in {@link stores},
- *   including its distance from the fixed {@link USER_LOCATION},
- *   the priced-out product line, the running total, and the names of
- *   items the store could not fulfil (either not stocked or unit
- *   conversion failed).
+ * @param location - Optional user location for distance calculation;
+ *   defaults to {@link USER_LOCATION} while there is no geolocation
+ *   flow to feed this from the client.
+ * @returns One {@link StoreOffer} per registered catalogue provider,
+ *   including its distance from `location`, the priced-out product
+ *   line, the running total, and the names of items the store could
+ *   not fulfil (either not stocked or unit conversion failed).
  * @throws Never — errors in downstream helpers only produce
  *   unavailable products, not thrown exceptions.
  *
- * This is a mock: the store list and the catalogue both come from
- * {@link storePricing} in mockData. When a real backend replaces this
- * layer only the body should change — the return shape must stay
- * identical so `/api/compare` route and clients keep working.
+ * Store catalogues are fetched through
+ * {@link src/server/catalogue!getAllStores} and
+ * {@link src/server/catalogue!getProductsForStore}, so adding or
+ * swapping a store (real vendor API, another scrape) only touches
+ * src/server/catalogue and needs no changes here.
  */
-export function getStoreComparison(items: GroceryItem[]): StoreOffer[] {
-  return stores.map((store) => {
-    const catalogue = storePricing[store.id] ?? [];
-    const distanceKm =
-      store.latitude !== null && store.longitude !== null
-        ? Math.round(
-            haversineKm(USER_LOCATION, {
-              latitude: store.latitude,
-              longitude: store.longitude,
-            }) * 10,
-          ) / 10
-        : null;
-    const products = items.map((item) => {
-      const priceEntry = catalogue.find(
-        (product) =>
-          normaliseName(product.listItemName) === normaliseName(item.name),
-      );
+export function getStoreComparison(
+  items: GroceryItem[],
+  location: GeoPoint = USER_LOCATION,
+): StoreOffer[] {
+  const stores = getAllStores(location);
+  const names = items.map((item) => item.name);
 
-      if (!priceEntry) return createUnavailableProduct(item);
+  return stores.map((store) => {
+    const productsByName = getProductsForStore(store.id, names);
+    const products = items.map((item) => {
+      const priceEntry = productsByName.get(normaliseName(item.name));
+      if (!priceEntry || !priceEntry.available) {
+        return createUnavailableProduct(item);
+      }
 
       const packsNeeded = getPacksNeeded(item, priceEntry);
       if (packsNeeded === null) return createUnavailableProduct(item);
@@ -103,7 +103,7 @@ export function getStoreComparison(items: GroceryItem[]): StoreOffer[] {
     });
 
     return {
-      store: { ...store, distanceKm },
+      store,
       products,
       total: products.reduce(
         (sum, product) => sum + (product.available ? product.lineTotal : 0),
