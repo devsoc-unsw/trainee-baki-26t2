@@ -45,19 +45,34 @@ interface IndexedProduct {
    * all-unparseable bucket still ranks cheapest-total first.
    */
   pricePerCanonicalUnit: number;
-  packageQuantity: number;
-  packageUnit: string;
+  /** Null when package_size can't be parsed — item is unavailable. */
+  packageQuantity: number | null;
+  packageUnit: string | null;
 }
 
-// TODO(next commit): parse package_size through src/lib/units.ts
-// and return null on failure instead of defaulting to (1, "x"),
-// which silently misprices anything the regex misses.
+/**
+ * Parses a Woolworths package_size string ("1kg", "500g",
+ * "500g - 650g", "per 350g", "each") into a numeric quantity and a
+ * unit string that {@link lookupUnit} recognises. Returns null when
+ * neither pattern matches so the caller can mark the item
+ * unavailable.
+ *
+ * The lower bound is used for ranges ("500g - 650g" -> 500g) so
+ * packsNeeded rounds up more aggressively and the shopper never
+ * comes home short.
+ */
 const parsePackageSize = (
   raw: string | null | undefined,
-): { quantity: number; unit: string } => {
-  const match = raw?.match(/(\d+(?:\.\d+)?)\s*(kg|g|l|ml|x)\b/i);
-  if (!match) return { quantity: 1, unit: "x" };
-  return { quantity: Number(match[1]), unit: match[2].toLowerCase() };
+): { quantity: number; unit: string } | null => {
+  if (!raw) return null;
+  const cleaned = raw.trim().toLowerCase().replace(/^per\s+/, "");
+  if (/^each\b/.test(cleaned)) return { quantity: 1, unit: "x" };
+
+  const match = cleaned.match(/^(\d+(?:\.\d+)?)\s*([a-z]+)/);
+  if (!match) return null;
+  const [, quantityStr, unitStr] = match;
+  if (!lookupUnit(unitStr)) return null;
+  return { quantity: Number(quantityStr), unit: unitStr };
 };
 
 /**
@@ -125,8 +140,8 @@ const productsByIngredient: Map<string, IndexedProduct> = (() => {
       url: raw.url ?? null,
       pricePerCanonicalUnit:
         pricePerCanonicalUnit ?? Number.POSITIVE_INFINITY,
-      packageQuantity: packageSize.quantity,
-      packageUnit: packageSize.unit,
+      packageQuantity: packageSize?.quantity ?? null,
+      packageUnit: packageSize?.unit ?? null,
     };
     const key = normaliseName(raw.search_term);
     const bucket = groups.get(key) ?? [];
@@ -149,18 +164,27 @@ const productsByIngredient: Map<string, IndexedProduct> = (() => {
 const toStoreProduct = (
   requestedName: string,
   product: IndexedProduct,
-): StoreProduct => ({
-  listItemName: normaliseName(requestedName),
-  displayName: product.name,
-  packageSize: product.packageQuantity,
-  packageUnit: product.packageUnit,
-  packagePrice: product.price,
-  packsNeeded: 0,
-  lineTotal: 0,
-  imageUrl: product.imageUrl,
-  productUrl: product.url,
-  available: true,
-});
+): StoreProduct | null => {
+  // Without a parseable numeric package size we cannot let
+  // getPacksNeeded do pack maths — mark unavailable rather than
+  // pretending the item is "1 x product" and shipping the wrong
+  // quantity to the shopper.
+  if (product.packageQuantity === null || product.packageUnit === null) {
+    return null;
+  }
+  return {
+    listItemName: normaliseName(requestedName),
+    displayName: product.name,
+    packageSize: product.packageQuantity,
+    packageUnit: product.packageUnit,
+    packagePrice: product.price,
+    packsNeeded: 0,
+    lineTotal: 0,
+    imageUrl: product.imageUrl,
+    productUrl: product.url,
+    available: true,
+  };
+};
 
 const unavailable = (requestedName: string): StoreProduct => ({
   listItemName: normaliseName(requestedName),
@@ -215,7 +239,8 @@ export const woolworthsProvider: CatalogueProvider = {
     for (const name of names) {
       const key = normaliseName(name);
       const product = productsByIngredient.get(key);
-      results.set(key, product ? toStoreProduct(name, product) : unavailable(name));
+      const storeProduct = product ? toStoreProduct(name, product) : null;
+      results.set(key, storeProduct ?? unavailable(name));
     }
     return results;
   },
