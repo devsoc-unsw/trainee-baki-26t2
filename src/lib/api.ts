@@ -81,10 +81,31 @@ export async function getStoreComparison(
 ): Promise<StoreOffer[]> {
   await delay();
 
+  const resolvedIngredients = await resolveIngredientsToProducts(
+    items.map(({ name, quantity, unit }) => ({ name, quantity, unit })),
+  );
+  const resolvedByName = new Map(
+    resolvedIngredients.map((ingredient) => [
+      normaliseName(ingredient.name),
+      ingredient,
+    ]),
+  );
+
   // The mock preserves the current fixed mapping: cheapest is Coles and
   // closest is Woolworths. Real ranking belongs in the backend.
   return stores.map((store) => {
-    const catalogue = storePricing[store.id] ?? [];
+    const catalogue = (storePricing[store.id] ?? []).map((product) => {
+      if (store.id !== "woolworths") return product;
+
+      const resolved = resolvedByName.get(normaliseName(product.listItemName));
+      if (!resolved?.productName) return product;
+
+      return {
+        ...product,
+        displayName: resolved.productName,
+        imageUrl: resolved.productImageUrl ?? product.imageUrl,
+      };
+    });
     const distanceKm =
       store.latitude !== null && store.longitude !== null
         ? Math.round(
@@ -207,7 +228,7 @@ const mealFromMealDB = (mdbMeal: MealDBMeal): Meal => {
   );
 
   return {
-    id: mdbMeal.strMeal,
+    id: mdbMeal.idMeal,
     name: mdbMeal.strMeal,
     description: mdbMeal.strInstructions ?? "",
     attribution: "TheMealDB",
@@ -356,14 +377,28 @@ export async function getMealsFromIngredients(
 export async function getIngredientsForMeal(
   mealId: string,
 ): Promise<Ingredient[]> {
-  const matches = await searchMealsByName(mealId);
-  const meal = matches.find(
-    (candidate) => normaliseName(candidate.strMeal) === normaliseName(mealId),
-  );
+  const meal = await lookupMealById(mealId);
   if (!meal) return [];
 
   return extractIngredients(meal).map((ingredient) => {
     const { quantity, unit } = parseMeasure(ingredient.measure);
     return { name: ingredient.name, quantity, unit };
   });
+}
+
+export async function resolveIngredientsToProducts(
+  ingredients: Ingredient[],
+): Promise<Ingredient[]> {
+  const response = await fetch("/api/woolworths/resolve", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ingredients }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Woolworths product lookup failed: ${response.status}`);
+  }
+
+  const data: { ingredients: Ingredient[] } = await response.json();
+  return data.ingredients;
 }

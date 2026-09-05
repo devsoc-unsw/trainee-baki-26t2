@@ -57,7 +57,8 @@ const mergeShoppingItems = (
   const mergedItems = [...currentItems];
 
   newItems.forEach((newItem) => {
-    if (newItem.quantity === null) return;
+    const quantity = newItem.quantity;
+    if (quantity === null) return;
 
     const existingIndex = mergedItems.findIndex(
       (item) =>
@@ -68,16 +69,15 @@ const mergeShoppingItems = (
       const existingItem = mergedItems[existingIndex];
       mergedItems[existingIndex] = {
         ...existingItem,
-        quantity: existingItem.quantity + newItem.quantity,
+        quantity: existingItem.quantity + quantity,
       };
       return;
     }
 
     mergedItems.push({
       id: getNextId(),
-      name: newItem.name,
-      quantity: newItem.quantity,
-      unit: newItem.unit,
+      ...newItem,
+      quantity,
     });
   });
 

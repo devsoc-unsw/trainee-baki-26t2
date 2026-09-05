@@ -6,18 +6,11 @@ every ingredient TheMealDB knows about. Run this locally/manually, then
 point your Next.js app at the resulting output/products.json instead of
 hitting Woolworths live on every request.
 
-Why this works where the Node fetch didn't:
-- curl_cffi mimics a real browser's TLS handshake fingerprint, which is
-  likely what was tripping Woolworths' connection-level bot detection
-  (Node's fetch/undici has a distinguishable handshake).
-- It also "warms up" a session by visiting the homepage first, picking up
-  cookies before hitting the search API, rather than firing a blind POST.
-
 Setup:
-    pip install curl_cffi
+  pip install curl_cffi
 
 Usage:
-    python woolworths_scraper.py
+  python woolworths_scraper.py
 """
 import json
 import csv

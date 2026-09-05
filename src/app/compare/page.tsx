@@ -35,7 +35,7 @@ const pickClosest = (offers: StoreOffer[]): StoreOffer | undefined =>
 export default function ComparePage() {
   const { items } = useShoppingList();
   const [activeView, setActiveView] =
-    useState<ComparisonView>("cheapest");
+    useState<ComparisonView>("closest");
   const requestKey = JSON.stringify(items);
   const [response, setResponse] = useState<{
     requestKey: string;
