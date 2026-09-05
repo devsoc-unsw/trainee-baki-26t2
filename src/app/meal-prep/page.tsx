@@ -81,6 +81,14 @@ export default function MealPrepPage() {
     ? getInstructionSteps(selectedMeal.description)
     : [];
 
+  // Hydrate from sessionStorage on mount. React 19's
+  // react-hooks/set-state-in-effect rule flags setState calls inside
+  // an effect, but for browser-only APIs the alternative
+  // (useSyncExternalStore with an SSR snapshot) is heavier machinery
+  // than the situation calls for — SSR renders empty state, the
+  // client re-renders once with the restored value, and there is no
+  // hydration mismatch because both sides start with an empty state.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const savedState = sessionStorage.getItem(MEAL_PREP_STATE_KEY);
     if (!savedState) return;
@@ -111,6 +119,7 @@ export default function MealPrepPage() {
       sessionStorage.removeItem(MEAL_PREP_STATE_KEY);
     }
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     sessionStorage.setItem(
