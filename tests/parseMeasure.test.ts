@@ -60,7 +60,14 @@ describe("parseMeasure", () => {
   });
 
   it("handles a bare number with no unit", () => {
-    expect(parseMeasure("3")).toEqual({ quantity: 3, unit: "" });
+    expect(parseMeasure("3")).toEqual({ quantity: 3, unit: "x" });
+  });
+
+  it("removes preparation words from count measurements", () => {
+    expect(parseMeasure("2 chopped onions")).toEqual({
+      quantity: 2,
+      unit: "x",
+    });
   });
 });
 

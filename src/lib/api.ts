@@ -30,6 +30,22 @@ const delay = () =>
     setTimeout(resolve, MOCK_DELAY_MS);
   });
 
+const cleanMeasureUnit = (unit: string) => {
+  const cleanedUnit = unit
+    .toLowerCase()
+    .replace(
+      /\b(?:small|medium|large|red|brown|white|chopped|diced|sliced|minced|finely|roughly)\b/g,
+      " ",
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const measurement = cleanedUnit.match(
+    /^(mg|g|kg|ml|l|millilitre|millilitres|milliliter|milliliters|litre|litres|liter|liters|cup|cups|tbsp|tbs|tablespoon|tablespoons|tsp|teaspoon|teaspoons)\b/,
+  );
+  return measurement?.[1] ?? "x";
+};
+
 export const normaliseAmount = (quantity: number, unit: string) => {
   const normalisedUnit = unit.trim().toLowerCase();
 
@@ -81,7 +97,7 @@ export const normaliseAmount = (quantity: number, unit: string) => {
     };
   }
 
-  return { quantity, unit: normalisedUnit || "x" };
+  return { quantity, unit: "x" };
 };
 
 const getPacksNeeded = (
@@ -271,7 +287,7 @@ export function parseMeasure(
     if (denominator > 0) {
       return {
         quantity: Number(whole) + Number(num) / denominator,
-        unit: (rest ?? "").trim(),
+        unit: cleanMeasureUnit(rest ?? ""),
       };
     }
   }
@@ -283,7 +299,7 @@ export function parseMeasure(
     if (denominator > 0) {
       return {
         quantity: Number(num) / denominator,
-        unit: (rest ?? "").trim(),
+        unit: cleanMeasureUnit(rest ?? ""),
       };
     }
   }
@@ -294,7 +310,7 @@ export function parseMeasure(
   if (scalar) {
     return {
       quantity: Number(scalar[1]),
-      unit: (scalar[2] ?? "").trim(),
+        unit: cleanMeasureUnit(scalar[2] ?? ""),
     };
   }
 

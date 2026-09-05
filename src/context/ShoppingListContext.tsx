@@ -15,6 +15,7 @@ type ShoppingListContextValue = {
   items: GroceryItem[];
   addItem: (input: string) => GroceryItem | null;
   addItems: (items: Ingredient[]) => void;
+  clearItems: () => void;
   removeItem: (id: number) => void;
   updateQuantity: (id: number, quantity: number) => void;
   updateUnit: (id: number, unit: string) => void;
@@ -129,6 +130,11 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const clearItems = () => {
+    setItems([]);
+    nextId.current = 1;
+  };
+
   const removeItem = (id: number) => {
     setItems((currentItems) =>
       currentItems.filter((item) => item.id !== id),
@@ -159,6 +165,7 @@ export function ShoppingListProvider({ children }: { children: ReactNode }) {
         items,
         addItem,
         addItems,
+        clearItems,
         removeItem,
         updateQuantity,
         updateUnit,

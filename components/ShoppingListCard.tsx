@@ -14,8 +14,14 @@ const isValidQuantity = (value: string) => {
 
 export default function ShoppingListCard() {
   const router = useRouter();
-  const { items, addItem, removeItem, updateQuantity, updateUnit } =
-    useShoppingList();
+  const {
+    items,
+    addItem,
+    clearItems,
+    removeItem,
+    updateQuantity,
+    updateUnit,
+  } = useShoppingList();
   const [quantityDrafts, setQuantityDrafts] = useState<
     Record<number, string>
   >(() =>
@@ -62,15 +68,30 @@ export default function ShoppingListCard() {
     router.push("/compare");
   };
 
+  const handleClearItems = () => {
+    clearItems();
+    setQuantityDrafts({});
+  };
+
   return (
     <Card
       as="section"
       variant="panel"
       className="ml-0 min-w-0 w-full max-w-120 overflow-hidden p-4 sm:ml-4 sm:p-6 lg:ml-8"
     >
-      <h2 className="mb-4 font-island-moments text-4xl leading-none text-black sm:text-5xl">
-        Shopping List
-      </h2>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="font-island-moments text-4xl leading-none text-black sm:text-5xl">
+          Shopping List
+        </h2>
+        <Button
+          variant="secondary"
+          onClick={handleClearItems}
+          disabled={items.length === 0}
+          className="shrink-0 px-3 py-2 text-lg sm:px-4 sm:py-2"
+        >
+          Clear
+        </Button>
+      </div>
 
       <Card variant="well" className="min-w-0 p-4 sm:p-6">
         {items.length === 0 ? (
