@@ -11,12 +11,26 @@ import type { StoreOffer } from "../../types";
 
 type ComparisonView = "cheapest" | "closest";
 
-const storeIdByView: Record<ComparisonView, string> = {
-  cheapest: "coles",
-  closest: "woolworths",
-};
-
 const formatPrice = (price: number) => `$${price.toFixed(2)}`;
+
+const pickCheapest = (offers: StoreOffer[]): StoreOffer | undefined =>
+  offers.reduce<StoreOffer | undefined>((best, offer) => {
+    if (!best) return offer;
+    if (offer.unavailableItems.length !== best.unavailableItems.length) {
+      return offer.unavailableItems.length < best.unavailableItems.length
+        ? offer
+        : best;
+    }
+    return offer.total < best.total ? offer : best;
+  }, undefined);
+
+const pickClosest = (offers: StoreOffer[]): StoreOffer | undefined =>
+  offers.reduce<StoreOffer | undefined>((best, offer) => {
+    const distance = offer.store.distanceKm;
+    if (distance === null) return best;
+    const bestDistance = best?.store.distanceKm ?? Infinity;
+    return distance < bestDistance ? offer : best;
+  }, undefined);
 
 export default function ComparePage() {
   const { items } = useShoppingList();
@@ -57,9 +71,8 @@ export default function ComparePage() {
       : errorRequestKey === requestKey
         ? "error"
         : "loading";
-  const activeOffer = offers.find(
-    (offer) => offer.store.id === storeIdByView[activeView],
-  );
+  const activeOffer =
+    activeView === "cheapest" ? pickCheapest(offers) : pickClosest(offers);
 
   return (
     <>

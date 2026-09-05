@@ -16,3 +16,17 @@ export interface MealDBMeal {
 export interface MealDBSearchResponse {
   meals : MealDBMeal[] | null;
 }
+
+export interface MealDBMealSummary {
+  idMeal: string;
+  strMeal: string;
+  strMealThumb: string;
+}
+
+export interface MealDBFilterResponse {
+  meals: MealDBMealSummary[] | null;
+}
+
+export interface MealDBLookupResponse {
+  meals: MealDBMeal[] | null;
+}
