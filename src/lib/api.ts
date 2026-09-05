@@ -30,7 +30,7 @@ const delay = () =>
     setTimeout(resolve, MOCK_DELAY_MS);
   });
 
-const normaliseAmount = (quantity: number, unit: string) => {
+export const normaliseAmount = (quantity: number, unit: string) => {
   const normalisedUnit = unit.trim().toLowerCase();
 
   if (normalisedUnit === "kg") {
@@ -43,7 +43,7 @@ const normaliseAmount = (quantity: number, unit: string) => {
   return { quantity, unit: normalisedUnit };
 };
 
-const getPacksNeeded = (
+export const getPacksNeeded = (
   item: GroceryItem,
   priceEntry: StoreProduct,
 ) => {

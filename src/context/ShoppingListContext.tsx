@@ -49,7 +49,7 @@ const parseNewItem = (value: string) => {
   };
 };
 
-const mergeShoppingItems = (
+export const mergeShoppingItems = (
   currentItems: GroceryItem[],
   newItems: Ingredient[],
   getNextId: () => number,
