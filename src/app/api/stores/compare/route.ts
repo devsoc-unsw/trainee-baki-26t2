@@ -15,13 +15,15 @@ const bodySchema = z.object({
 });
 
 /**
- * POST /api/compare
+ * POST /api/stores/compare
  *
  * Body: { items: GroceryItem[] }
- * Returns: { offers: StoreOffer[] }
+ * Response: { offers: StoreOffer[] }
  *
  * Public by project design — no auth, no rate-limiting here.
  * Validation is defensive against malformed client payloads only.
+ * Pricing is CPU-only (see src/server/pricing.ts), so there is no
+ * upstream timeout — no external network calls happen in this route.
  */
 export async function POST(request: Request): Promise<Response> {
   try {

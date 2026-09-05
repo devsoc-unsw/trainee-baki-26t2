@@ -1,4 +1,4 @@
-import { searchMealsByName, extractIngredients } from "@/lib/mealdb"
+import { searchMealsByName, extractIngredients } from "@/server/mealdb"
 import { MealDBMeal } from "@/types/mealdb"
 
 export default async function MealDBTest() {
