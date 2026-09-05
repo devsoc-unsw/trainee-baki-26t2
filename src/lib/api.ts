@@ -30,17 +30,58 @@ const delay = () =>
     setTimeout(resolve, MOCK_DELAY_MS);
   });
 
-const normaliseAmount = (quantity: number, unit: string) => {
+export const normaliseAmount = (quantity: number, unit: string) => {
   const normalisedUnit = unit.trim().toLowerCase();
 
-  if (normalisedUnit === "kg") {
-    return { quantity: quantity * 1000, unit: "g" };
-  }
-  if (normalisedUnit === "l") {
-    return { quantity: quantity * 1000, unit: "ml" };
+  if (
+    /^(?:(?:small|medium|large|red|brown|white|chopped|diced|sliced|minced|finely|roughly)\s+)*(?:onion|onions|piece|pieces|item|items|whole|wholes|clove|cloves)?$/i.test(
+      normalisedUnit,
+    )
+  ) {
+    return { quantity, unit: "x" };
   }
 
-  return { quantity, unit: normalisedUnit };
+  const conversions: Record<
+    string,
+    { multiplier: number; unit: string }
+  > = {
+    mg: { multiplier: 1, unit: "mg" },
+    g: { multiplier: 1, unit: "g" },
+    gram: { multiplier: 1, unit: "g" },
+    grams: { multiplier: 1, unit: "g" },
+    kg: { multiplier: 1000, unit: "g" },
+    kilogram: { multiplier: 1000, unit: "g" },
+    kilograms: { multiplier: 1000, unit: "g" },
+    ml: { multiplier: 1, unit: "ml" },
+    millilitre: { multiplier: 1, unit: "ml" },
+    millilitres: { multiplier: 1, unit: "ml" },
+    milliliter: { multiplier: 1, unit: "ml" },
+    milliliters: { multiplier: 1, unit: "ml" },
+    l: { multiplier: 1000, unit: "ml" },
+    litre: { multiplier: 1000, unit: "ml" },
+    litres: { multiplier: 1000, unit: "ml" },
+    liter: { multiplier: 1000, unit: "ml" },
+    liters: { multiplier: 1000, unit: "ml" },
+    cup: { multiplier: 250, unit: "ml" },
+    cups: { multiplier: 250, unit: "ml" },
+    tbsp: { multiplier: 20, unit: "ml" },
+    tbs: { multiplier: 20, unit: "ml" },
+    tablespoon: { multiplier: 20, unit: "ml" },
+    tablespoons: { multiplier: 20, unit: "ml" },
+    tsp: { multiplier: 5, unit: "ml" },
+    teaspoon: { multiplier: 5, unit: "ml" },
+    teaspoons: { multiplier: 5, unit: "ml" },
+  };
+
+  const conversion = conversions[normalisedUnit];
+  if (conversion) {
+    return {
+      quantity: quantity * conversion.multiplier,
+      unit: conversion.unit,
+    };
+  }
+
+  return { quantity, unit: normalisedUnit || "x" };
 };
 
 const getPacksNeeded = (
@@ -64,17 +105,54 @@ const getPacksNeeded = (
   return Math.ceil(requestedAmount.quantity / packageAmount.quantity);
 };
 
-const createUnavailableProduct = (item: GroceryItem): StoreProduct => ({
+const createUnavailableProduct = (
+  item: GroceryItem,
+  resolvedProduct?: Ingredient,
+): StoreProduct => ({
   listItemName: normaliseName(item.name),
-  displayName: formatIngredientName(item.name),
+  displayName: resolvedProduct?.productName ?? formatIngredientName(item.name),
   packageSize: 0,
   packageUnit: item.unit,
   packagePrice: 0,
   packsNeeded: 0,
   lineTotal: 0,
-  imageUrl: null,
+  imageUrl: resolvedProduct?.productImageUrl ?? null,
   available: false,
 });
+
+const createResolvedProduct = (
+  item: GroceryItem,
+  resolvedProduct: Ingredient,
+): StoreProduct => {
+  const packageSize = resolvedProduct.productPackageSize ?? 1;
+  const packageUnit = resolvedProduct.productPackageUnit ?? "x";
+  const packagePrice = resolvedProduct.productPrice ?? 0;
+  const requiredAmount = normaliseAmount(item.quantity, item.unit);
+  const packsNeeded =
+    getPacksNeeded(item, {
+      listItemName: item.name,
+      displayName: resolvedProduct.productName ?? formatIngredientName(item.name),
+      packageSize,
+      packageUnit,
+      packagePrice,
+      packsNeeded: 0,
+      lineTotal: 0,
+      imageUrl: resolvedProduct.productImageUrl ?? null,
+      available: true,
+    }) ?? (requiredAmount.unit === "x" ? Math.ceil(item.quantity) : 1);
+
+  return {
+    listItemName: normaliseName(item.name),
+    displayName: resolvedProduct.productName ?? formatIngredientName(item.name),
+    packageSize,
+    packageUnit,
+    packagePrice,
+    packsNeeded,
+    lineTotal: packagePrice * packsNeeded,
+    imageUrl: resolvedProduct.productImageUrl ?? null,
+    available: true,
+  };
+};
 
 export async function getStoreComparison(
   items: GroceryItem[],
@@ -116,12 +194,28 @@ export async function getStoreComparison(
           ) / 10
         : null;
     const products = items.map((item) => {
+      const resolved =
+        store.id === "woolworths"
+          ? resolvedByName.get(normaliseName(item.name))
+          : undefined;
+
+      if (resolved?.productName) {
+        return createResolvedProduct(item, resolved);
+      }
+
       const priceEntry = catalogue.find(
         (product) =>
           normaliseName(product.listItemName) === normaliseName(item.name),
       );
 
-      if (!priceEntry) return createUnavailableProduct(item);
+      if (!priceEntry) {
+        return createUnavailableProduct(
+          item,
+          store.id === "woolworths"
+            ? resolvedByName.get(normaliseName(item.name))
+            : undefined,
+        );
+      }
 
       const packsNeeded = getPacksNeeded(item, priceEntry);
       if (packsNeeded === null) return createUnavailableProduct(item);

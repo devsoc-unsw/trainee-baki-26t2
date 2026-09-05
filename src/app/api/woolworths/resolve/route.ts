@@ -7,8 +7,20 @@ import type { Ingredient } from "@/types";
 type WoolworthsProduct = {
   search_term?: string;
   name?: string;
+  price?: number;
+  package_size?: string | null;
   image_url?: string | null;
   url?: string | null;
+};
+
+const parsePackageSize = (value: string | null | undefined) => {
+  const match = value?.match(/(\d+(?:\.\d+)?)\s*(kg|g|l|ml|x)\b/i);
+  if (!match) return { size: 1, unit: "x" };
+
+  return {
+    size: Number(match[1]),
+    unit: match[2].toLowerCase(),
+  };
 };
 
 const loadProducts = async (): Promise<WoolworthsProduct[]> => {
@@ -53,12 +65,16 @@ export async function POST(request: Request) {
       (ingredient) => {
         const product = productBySearchTerm.get(normaliseName(ingredient.name));
         if (!product) return ingredient;
+        const packageSize = parsePackageSize(product.package_size);
 
         return {
           ...ingredient,
           productName: product.name,
           productImageUrl: product.image_url ?? null,
           productUrl: product.url ?? null,
+          productPackageSize: packageSize.size,
+          productPackageUnit: packageSize.unit,
+          productPrice: product.price ?? 0,
         };
       },
     );

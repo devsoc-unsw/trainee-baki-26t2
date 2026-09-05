@@ -12,6 +12,9 @@ export interface GroceryItem {
   productName?: string;
   productImageUrl?: string | null;
   productUrl?: string | null;
+  productPackageSize?: number;
+  productPackageUnit?: string;
+  productPrice?: number;
 }
 
 export interface Ingredient {
@@ -21,6 +24,9 @@ export interface Ingredient {
   productName?: string;
   productImageUrl?: string | null;
   productUrl?: string | null;
+  productPackageSize?: number;
+  productPackageUnit?: string;
+  productPrice?: number;
 }
 
 export interface Store {

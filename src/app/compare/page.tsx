@@ -144,11 +144,19 @@ export default function ComparePage() {
                         variant="content"
                         className="flex items-center gap-4 rounded-2xl! p-3"
                       >
-                        <Card
-                          variant="placeholder"
-                          className="h-16 w-28 shrink-0 sm:h-20 sm:w-40"
-                          aria-hidden="true"
-                        />
+                        {product.imageUrl ? (
+                          <img
+                            src={product.imageUrl}
+                            alt={product.displayName}
+                            className="h-16 w-28 shrink-0 object-contain sm:h-20 sm:w-40"
+                          />
+                        ) : (
+                          <Card
+                            variant="placeholder"
+                            className="h-16 w-28 shrink-0 sm:h-20 sm:w-40"
+                            aria-hidden="true"
+                          />
+                        )}
                         <p className="font-indie-flower text-2xl text-black">
                           {product.displayName}
                         </p>
