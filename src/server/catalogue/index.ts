@@ -5,6 +5,7 @@ import type { Store, StoreProduct } from "@/types";
 
 import { colesProvider } from "./coles";
 import type { CatalogueProvider } from "./types";
+import { woolworthsProvider } from "./woolworths";
 
 /**
  * Registered catalogue providers. Order defines the display order
@@ -12,7 +13,10 @@ import type { CatalogueProvider } from "./types";
  * picked up automatically by both /api/stores and
  * /api/stores/compare.
  */
-const providers: readonly CatalogueProvider[] = [colesProvider];
+const providers: readonly CatalogueProvider[] = [
+  woolworthsProvider,
+  colesProvider,
+];
 
 /**
  * Returns the list of all stores across every provider, with each
