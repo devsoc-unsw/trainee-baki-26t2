@@ -1,9 +1,14 @@
-import "server-only";
-
 /**
  * Canonical measurement axes. Every alias in {@link UNIT_ALIASES} is
  * mapped onto exactly one of these; conversions between two axes are
  * only possible for `g` <-> `ml` via a density lookup.
+ *
+ * This module lives in src/lib/ rather than src/server/ because the
+ * conversion logic is pure computation with no secrets or side
+ * effects, and the client-side shopping-list merge needs it (a merge
+ * that cannot compare units silently corrupts totals — see
+ * ShoppingListContext). server-only is reserved for modules that
+ * must not ship to the browser (pricing, errors, future DB access).
  */
 export type CanonicalUnit = "g" | "ml" | "count";
 

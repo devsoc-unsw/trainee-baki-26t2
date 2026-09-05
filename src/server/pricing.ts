@@ -3,7 +3,7 @@ import "server-only";
 import { haversineKm, USER_LOCATION } from "@/lib/geo";
 import { formatIngredientName, normaliseName } from "@/lib/ingredients";
 import { storePricing, stores } from "@/lib/mockData";
-import { convert } from "@/server/units";
+import { convert } from "@/lib/units";
 import type { GroceryItem, StoreOffer, StoreProduct } from "@/types";
 
 /**

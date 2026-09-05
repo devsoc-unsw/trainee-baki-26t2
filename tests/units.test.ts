@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { convert, getDensity, lookupUnit } from "@/server/units";
+import { convert, getDensity, lookupUnit } from "@/lib/units";
 
 describe("lookupUnit", () => {
   it("resolves plurals to the same definition as the singular", () => {

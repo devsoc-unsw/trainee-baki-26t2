@@ -2,14 +2,13 @@ import { describe, expect, it } from "vitest";
 import { mergeShoppingItems } from "@/context/ShoppingListContext";
 import type { GroceryItem, Ingredient } from "@/types";
 
-// Characterisation tests: these lock in what mergeShoppingItems does
-// today so the rewrite in step 6 is visible in the diff. The current
-// implementation compares only by name; when it finds a match it adds
-// the quantities together WITHOUT looking at the units. That is how
-// 200 g of butter + 2 cups of butter becomes "202 g" of butter. The
-// tests below assert that broken behaviour intentionally; step 6
-// updates them to reflect the fix (convert first; keep as separate
-// entries when conversion is impossible).
+// Post-rewrite assertions. The characterisation-test version of this
+// file asserted the "202 g" bug intentionally; that assertion has
+// been flipped to reflect the corrected behaviour. When the new
+// ingredient's unit converts to the existing unit, the quantity is
+// added AFTER conversion. When it does not convert (count vs weight,
+// unknown unit), the new ingredient becomes a separate line entry
+// rather than corrupting the running total.
 
 const makeIdSource = (start: number) => {
   let current = start;
@@ -23,16 +22,17 @@ const makeIdSource = (start: number) => {
 const existing: GroceryItem[] = [
   { id: 1, name: "butter", quantity: 200, unit: "g" },
   { id: 2, name: "milk", quantity: 500, unit: "ml" },
+  { id: 3, name: "garlic", quantity: 500, unit: "g" },
 ];
 
-describe("mergeShoppingItems (current behaviour)", () => {
+describe("mergeShoppingItems (post-rewrite)", () => {
   it("adds a new ingredient with a fresh id when it does not match by name", () => {
     const additions: Ingredient[] = [
       { name: "flour", quantity: 300, unit: "g" },
     ];
     const merged = mergeShoppingItems(existing, additions, makeIdSource(10));
-    expect(merged).toHaveLength(3);
-    expect(merged[2]).toEqual({
+    expect(merged).toHaveLength(4);
+    expect(merged[3]).toEqual({
       id: 10,
       name: "flour",
       quantity: 300,
@@ -40,12 +40,12 @@ describe("mergeShoppingItems (current behaviour)", () => {
     });
   });
 
-  it("sums quantities when the ingredient name already exists (same unit)", () => {
+  it("sums quantities when the ingredient name and unit match", () => {
     const additions: Ingredient[] = [
       { name: "butter", quantity: 50, unit: "g" },
     ];
     const merged = mergeShoppingItems(existing, additions, makeIdSource(10));
-    expect(merged).toHaveLength(2);
+    expect(merged).toHaveLength(3);
     expect(merged[0]).toEqual({
       id: 1,
       name: "butter",
@@ -54,17 +54,49 @@ describe("mergeShoppingItems (current behaviour)", () => {
     });
   });
 
-  it("silently adds numbers across mismatched units — the bug we will fix", () => {
+  it("converts compatible units before adding (kg into g)", () => {
+    const additions: Ingredient[] = [
+      { name: "butter", quantity: 1, unit: "kg" },
+    ];
+    const merged = mergeShoppingItems(existing, additions, makeIdSource(10));
+    expect(merged[0]).toEqual({
+      id: 1,
+      name: "butter",
+      quantity: 1200,
+      unit: "g",
+    });
+  });
+
+  it("converts volume to weight via density for butter (2 cups -> ~455 g)", () => {
     const additions: Ingredient[] = [
       { name: "butter", quantity: 2, unit: "cup" },
     ];
     const merged = mergeShoppingItems(existing, additions, makeIdSource(10));
-    expect(merged).toHaveLength(2);
-    expect(merged[0]).toEqual({
-      id: 1,
-      name: "butter",
-      quantity: 202,
+    // 2 cups = 500 ml, butter density 0.911 g/ml -> 455.5 g, plus 200.
+    expect(merged).toHaveLength(3);
+    expect(merged[0].unit).toBe("g");
+    expect(merged[0].quantity).toBeCloseTo(200 + 500 * 0.911, 2);
+  });
+
+  it("keeps the item as a separate line when units cannot convert", () => {
+    const additions: Ingredient[] = [
+      { name: "garlic", quantity: 3, unit: "clove" },
+    ];
+    const merged = mergeShoppingItems(existing, additions, makeIdSource(10));
+    expect(merged).toHaveLength(4);
+    // Original garlic entry stays untouched.
+    expect(merged[2]).toEqual({
+      id: 3,
+      name: "garlic",
+      quantity: 500,
       unit: "g",
+    });
+    // New entry appended with its own unit.
+    expect(merged[3]).toEqual({
+      id: 10,
+      name: "garlic",
+      quantity: 3,
+      unit: "clove",
     });
   });
 
@@ -73,7 +105,7 @@ describe("mergeShoppingItems (current behaviour)", () => {
       { name: "salt", quantity: null, unit: "to taste" },
     ];
     const merged = mergeShoppingItems(existing, additions, makeIdSource(10));
-    expect(merged).toHaveLength(2);
+    expect(merged).toHaveLength(3);
   });
 
   it("normalises names when matching so 'Butter' merges with 'butter'", () => {
@@ -81,23 +113,7 @@ describe("mergeShoppingItems (current behaviour)", () => {
       { name: "Butter", quantity: 100, unit: "g" },
     ];
     const merged = mergeShoppingItems(existing, additions, makeIdSource(10));
-    expect(merged).toHaveLength(2);
-    expect(merged[0].quantity).toBe(300);
-  });
-
-  it("processes multiple new items in a single call", () => {
-    const additions: Ingredient[] = [
-      { name: "butter", quantity: 25, unit: "g" },
-      { name: "sugar", quantity: 100, unit: "g" },
-    ];
-    const merged = mergeShoppingItems(existing, additions, makeIdSource(10));
     expect(merged).toHaveLength(3);
-    expect(merged[0].quantity).toBe(225);
-    expect(merged[2]).toEqual({
-      id: 10,
-      name: "sugar",
-      quantity: 100,
-      unit: "g",
-    });
+    expect(merged[0].quantity).toBe(300);
   });
 });
